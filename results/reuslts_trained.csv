@@ -1,0 +1,2 @@
+k1,k2,score,step,accuracy,training_time,computation_energy,communication_energy,total_energy,communications
+70,9,-0.10632050037384042,1,0.557276,0.776868,1.0,0.7940266,1.0,0.5044
