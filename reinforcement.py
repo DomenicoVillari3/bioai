@@ -5,6 +5,7 @@ import numpy as np
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import PPO
 import os
 import random
@@ -107,11 +108,11 @@ class OptHierFLEnv(Env):
         self.history_len = history_len
 
         
-        # Action space: k1 in [5, 75], k2 in [2, 20]
+        # Action space: k1 in [5, 25], k2 in [2, 10]
         # We represent this as offsets from the minimum values.
-        # k1_range = 75 - 5 + 1 = 71
-        # k2_range = 20 - 2 + 1 = 19
-        self.action_space=MultiDiscrete([71,19])
+        # k1_range = 25 - 5 + 1 = 21
+        # k2_range = 10 - 2 + 1 = 9
+        self.action_space=MultiDiscrete([21,9])
         self.observation_space=Box(low=0.0, high=1.0, shape=(3*self.history_len,), dtype=np.float32)
 
         self.n_global_rounds = global_rounds  # Numero di round globali per HierFL
@@ -187,8 +188,8 @@ class OptHierFLEnv(Env):
         -Args:
             action: azione dell'agente con parametri k1 in un range [0, 70] e k2 in un range [0, 18]
         -Returns:
-            k1: primo iperparametro, in un range [5, 75]
-            k2: secondo iperparametro, in un range [2, 20]
+            k1: primo iperparametro, in un range [5, 25]
+            k2: secondo iperparametro, in un range [2, 10]
         '''
         k1=int(action[0]+5) #k1 in the range [5, 75]
         k2=int(action[1]+2) #k2 in the range [2, 20]
@@ -380,9 +381,9 @@ class OptHierFLEnv(Env):
         gc.collect()
         
         # Reset del seed per garantire diversità
-        new_seed = np.random.randint(0, 10000)
-        torch.manual_seed(new_seed)
-        np.random.seed(new_seed)
+        #new_seed = np.random.randint(0, 10000)
+        #torch.manual_seed(new_seed)
+        #np.random.seed(new_seed)
 
     def _cleanup_memory(self):
         """Pulizia della memoria per evitare accumulo"""
@@ -402,7 +403,12 @@ class OptHierFLEnv(Env):
     def compute_reward(self, observation):
         '''Calcola la ricompensa in base ai risultati della simulazione.'''
 
-        reward = 0.0
+        # Componenti della reward
+        w_acc = 1.5 # Main driver: accuracy  
+        w_time = 0.6 # Penalty for time   
+        w_energy = 0.9  # Penalty for total energy  
+        w_communications = -0.225 # Penalty for number of communications 
+
 
         # Risultati della simulazione
         results = {
@@ -416,42 +422,25 @@ class OptHierFLEnv(Env):
             #'communication_energy_increase': observation[7]
         }
 
+        time_penalty = -1.0 if results["training_time"] > 0.6 else 0.0
+
+        reward = (w_acc * results['accuracy']) - \
+                (w_time * results['training_time']) - \
+                (w_energy * results['total_energy']) +\
+                time_penalty
+
         # Bonus per accuracy alta (reward progressivo)
         if results['accuracy'] > 0.7:
-            reward += 0.4
+            reward += 0.3
         elif results['accuracy'] > 0.5:
-            reward += 0.2
+            reward += 0.1
         
 
 
         # Penalità per performance scarse
-        if results['accuracy'] < 0.25:
-            reward-=1   
-        if results['training_time'] > 0.8:  # molto lungo (20 min col range [0, 2000])
-            reward -= 1
-        
-        '''
-        # Bonus per efficienza (configurazioni che mantengono buona accuracy con meno risorse)
-        efficiency_bonus = 0
-        if results['accuracy'] > 0.5:  # Solo se performance accettabile
-            if results['total_energy'] < 0.6:  # Basso consumo energetico
-                efficiency_bonus += 0.3
-            if results['training_time'] < 0.5:  # Tempo ragionevole
-                efficiency_bonus += 0.2'''
-
-
-        # Componenti della reward
-        w_acc = 0.475  # Main driver: accuracy  
-        w_time = -0.225 # Penalty for time   
-        w_energy = -0.3  # Penalty for total energy  
-        w_communications = -0.225 # Penalty for number of communications 
-
-        # Calcola la ricompensa combinando le metriche
-        #reward [-1.5, 2.0]
-        reward =(w_acc * results['accuracy']) + \
-                (w_time * results['training_time']) + \
-                (w_energy * results['total_energy'])
-
+        if results["accuracy"] < 0.2:
+            reward -= 0.5
+            
     
         # Clipping del reward in un range ragionevole
         #return float(np.clip(reward, -1.0, 1.0))
@@ -585,7 +574,7 @@ class OptHierFLEnv(Env):
         """
         # Seed diverso per ogni simulazione per evitare risultati identici
         simulation_seed = hash((k1, k2, self.current_round, self.episode_count)) % 10000
-        np.random.seed(simulation_seed)
+        #np.random.seed(simulation_seed)
         
         # Simulazione realistica basata sui parametri
         # Accuracy: migliora con più iterazioni locali ma con diminishing returns
@@ -619,7 +608,7 @@ class OptHierFLEnv(Env):
 if __name__ == "__main__":
     # Inizializza l'ambiente di ottimizzazione per HierFL
     env = OptHierFLEnv(env_name="HierFL-v0", max_round=1, global_rounds=3,history_len=5)  # Riduci per test
-    
+    #env = Monitor(env, filename="monitor_log.csv")
 
     log_path = os.path.join('Training', 'Logs')
 
