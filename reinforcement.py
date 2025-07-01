@@ -355,7 +355,10 @@ class OptHierFLEnv(Env):
         final_time = time.time()
         self.reset_time = final_time - init_time
         
-        return self._get_history_state()
+        if self.history_len >= 2:
+            return self._get_history_state()
+        else:
+            return self.state_history[0]
         
     
     def _get_history_state(self):
