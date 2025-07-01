@@ -58,10 +58,14 @@ from gym import Env
 from gym.spaces import Discrete, Box,MultiDiscrete,Dict,Tuple
 import numpy as np
 
+def estimate_energy_max(rounds):
+        # Calibrata: E(3) ≈ 500, E(25) ≈ 5000
+        a = 5000 / np.log1p(25)   # ≈ 1625.5
+        return a * np.log1p(rounds)
 
 
 class OptHierFLEnv(Env):
-
+    
     def __init__(self, env_name: str,max_round: int = 1,global_rounds: int = 10,history_len: int = 3):
         '''Inizializzazione dell'ambiente di ottimizzazione per HierFL.
         
@@ -76,8 +80,8 @@ class OptHierFLEnv(Env):
             action_space: spazio delle azioni, MultiDiscrete con valori in [5,25] per k1 e 18 [2,10] per k2
             observation_space: spazio delle osservazioni, Box con 3 valori normalizzati tra 0 e 1
                 1) accuracy [0,1]
-                2) training time [0,2000]
-                5) total energy [0,510]
+                2) training time [0,1200] 1200 max in quanto >20 min non è accettabile
+                5) total energy [0,5000]
                 
             
             time_min, time_max: intervallo per il tempo di addestramento
@@ -103,10 +107,10 @@ class OptHierFLEnv(Env):
 
         # Range 
         self.acc_min, self.acc_max = 0.0,self.n_global_rounds
-        self.time_min, self.time_max = 0, 2000
+        self.time_min, self.time_max = 0, 1200 # Tempo di addestramento in secondi max 
         #self.computation_energy_min, self.computation_energy_max  = 0, 10
         #self.communication_energy_min, self.communication_energy_max = 0, 500
-        self.total_energy_min, self.total_energy_max = 0, 5000
+        self.total_energy_min, self.total_energy_max = 0, estimate_energy_max(self.n_global_rounds)  # Energia totale stimata
         #self.comms_min, self.comms_max = 0, 4500
 
         
