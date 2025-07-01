@@ -645,7 +645,7 @@ class OptHierFLEnv(Env):
 
 if __name__ == "__main__":
     # Inizializza l'ambiente di ottimizzazione per HierFL
-    env = OptHierFLEnv(env_name="HierFL-v0", max_round=0, global_rounds=3,history_len=0)  
+    env = OptHierFLEnv(env_name="HierFL-v0", max_round=0, global_rounds=3,history_len=1)  
     
 
     log_path = os.path.join('Training', 'Logs')
