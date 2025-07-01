@@ -54,6 +54,7 @@ import gc
 import gym 
 from gym import Env
 from gym.spaces import Discrete, Box,MultiDiscrete,Dict,Tuple
+import numpy as np
 
 
 
@@ -135,6 +136,8 @@ class OptHierFLEnv(Env):
         # Variabili per tracking
         self.best_accuracy = 0.0
         self.episode_count = 0
+
+
         
         # Inizializza ambiente
         self.reset()
@@ -403,6 +406,28 @@ class OptHierFLEnv(Env):
     def compute_reward(self, observation):
         '''Calcola la ricompensa in base ai risultati della simulazione.'''
 
+        # Risultati della simulazione
+        results = {
+            'accuracy': observation[0],
+            'training_time': observation[1],
+            'total_energy': observation[2],
+        }
+
+
+
+        if len(self.state_history)>=2:
+            previous_obs=self.state_history[-2]
+        else:
+            previous_obs=observation
+
+        
+        #compute miglioramento: 
+        delta_acc=results["accuracy"]-previous_obs[0]
+        delta_time=previous_obs[1]-results["training_time"]
+        delta_energy=previous_obs[2]-results["total_energy"]
+
+
+
         # Componenti della reward
         w_acc = 1.5 # Main driver: accuracy  
         w_time = 0.6 # Penalty for time   
@@ -410,24 +435,9 @@ class OptHierFLEnv(Env):
         w_communications = -0.225 # Penalty for number of communications 
 
 
-        # Risultati della simulazione
-        results = {
-            'accuracy': observation[0],
-            'training_time': observation[1],
-            'total_energy': observation[2],
-            #'computation_energy': observation[2],
-            #'communication_energy': observation[3],
-            #'communications': observation[5]#,
-            #'accuracy_increase': observation[6],
-            #'communication_energy_increase': observation[7]
-        }
-
-        time_penalty = -1.0 if results["training_time"] > 0.6 else 0.0
-
-        reward = (w_acc * results['accuracy']) - \
-                (w_time * results['training_time']) - \
-                (w_energy * results['total_energy']) +\
-                time_penalty
+        reward = (w_acc * delta_acc) - \
+                (w_time * delta_time) - \
+                (w_energy * delta_energy)
 
         # Bonus per accuracy alta (reward progressivo)
         if results['accuracy'] > 0.7:
@@ -435,16 +445,23 @@ class OptHierFLEnv(Env):
         elif results['accuracy'] > 0.5:
             reward += 0.1
         
-
-
         # Penalità per performance scarse
         if results["accuracy"] < 0.2:
             reward -= 0.5
-            
-    
+        
+        #penalità time alti
+        if results["training_time"] > 0.6:
+            reward-=1
+       
+
         # Clipping del reward in un range ragionevole
-        #return float(np.clip(reward, -1.0, 1.0))
-        return float(np.clip(reward, -1.0, 1.0))  
+        #return float(np.clip(reward, -1.0, 1.0))  
+
+        T=max(0.01,np.exp(-0.05*self.episode_count))
+        exploration_noise=T*np.random.uniform(-0.2,0.2)
+        reward+=exploration_noise
+
+        return reward
 
 
     def write_summary(self,k1,k2, score, step,state,filename="reuslts_trained.csv"):
@@ -607,7 +624,7 @@ class OptHierFLEnv(Env):
 
 if __name__ == "__main__":
     # Inizializza l'ambiente di ottimizzazione per HierFL
-    env = OptHierFLEnv(env_name="HierFL-v0", max_round=1, global_rounds=3,history_len=5)  # Riduci per test
+    env = OptHierFLEnv(env_name="HierFL-v0", max_round=5, global_rounds=3,history_len=5)  # Riduci per test
     #env = Monitor(env, filename="monitor_log.csv")
 
     log_path = os.path.join('Training', 'Logs')
@@ -617,14 +634,14 @@ if __name__ == "__main__":
         "MlpPolicy",
         env,
         learning_rate=3e-4,    # default SB3, stabile
-        n_steps=128,            # rollout buffer = 64 interazioni
+        n_steps=128,            # rollout buffer = 64 interazioni meno update ma più ricchi
         batch_size=64,         # suddivide il buffer in minibatch gestibili
-        n_epochs=10,            # 3 epoche per update
+        n_epochs=3,            # 3 epoche per update
         verbose=1,
         gamma=0.99
     )
 
-    model.learn(total_timesteps=15000,progress_bar=True)
+    model.learn(total_timesteps=12000,progress_bar=True)
 
     #nsteps*total_timesteps
     #env.observation_space.seed(SEED)
