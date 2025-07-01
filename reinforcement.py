@@ -481,7 +481,10 @@ class OptHierFLEnv(Env):
                                      "computation_energy_avg",
                                      "communication_energy_avg",
                                      "total_energy_avg",
-                                     "communications_avg"  
+                                     "communications_avg",
+                                     "normalized_accuracy",
+                                     "normalized_training_time",
+                                     "normalized_total_energy"
                                      
                                      #''', 'accuracy_increase','communication_energy_increase'''
                                      ])
@@ -506,11 +509,10 @@ class OptHierFLEnv(Env):
                 state["computation_energy"]/self.n_global_rounds,
                 state["communication_energy"]/self.n_global_rounds,
                 state["total_energy"]/self.n_global_rounds,
-                state["communications"]/self.n_global_rounds
-
-
-                #state[6],  # accuracy_increase
-                #state[7]   # communication_energy_increase
+                state["communications"]/self.n_global_rounds,
+                self.normalize(state["accuracy"], self.acc_min, self.acc_max),  # normalized accuracy
+                self.normalize(state["training_time"], self.time_min, self.time_max),  # normalized
+                self.normalize(state["total_energy"], self.total_energy_min, self.total_energy_max),  # normalized total energy
             ])
             f.close()
 
