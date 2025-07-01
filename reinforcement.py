@@ -272,7 +272,12 @@ class OptHierFLEnv(Env):
         # Scrivi i tempi in un file di testo
         self.write_time()
 
-        return self._get_history_state(), reward, done, info
+        if self.history_len>=2:
+            # Se la storia è abbastanza lunga, restituisci lo stato della storia
+            return self._get_history_state(), reward, done, info
+        else:
+            # Se la storia è troppo corta, restituisci lo stato corrente
+            return self.new_observation, reward, done, info
 
     def write_time(self, time_filename="time.csv"):
         '''Scrive il tempo impiegato per il reset e per ogni round in un file di testo.
@@ -356,7 +361,7 @@ class OptHierFLEnv(Env):
     def _get_history_state(self):
         '''Restituisce lo stato corrente dell'ambiente come concatenazione della storia degli stati.
         -Returns:
-            state_history_state (np.ndarray) (3*history_len)x1: La storia degli stati'''
+            state_history_state (np.ndarray) (3*history_len)x1: La storia degli stati '''
         return np.concatenate(list(self.state_history))
     
     
