@@ -66,3 +66,51 @@ Client 3 - 	Train Loader: 147 sample with Label 0	Train Loader: 126 sample with 
 Client 4 - 	Train Loader: 124 sample with Label 0	Train Loader: 123 sample with Label 1	Train Loader: 121 sample with Label 2	Train Loader: 140 sample with Label 3	Train Loader: 134 sample with Label 4	Train Loader: 148 sample with Label 5	Train Loader: 134 sample with Label 6	Train Loader: 148 sample with Label 7	Train Loader: 126 sample with Label 8	Train Loader: 134 sample with Label 9	Validation Loader: 36 sample with Label 0	Validation Loader: 27 sample with Label 1	Validation Loader: 39 sample with Label 2	Validation Loader: 36 sample with Label 3	Validation Loader: 34 sample with Label 4	Validation Loader: 30 sample with Label 5	Validation Loader: 28 sample with Label 6	Validation Loader: 36 sample with Label 7	Validation Loader: 40 sample with Label 8	Validation Loader: 28 sample with Label 9
 Client 5 - 	Train Loader: 145 sample with Label 0	Train Loader: 135 sample with Label 1	Train Loader: 119 sample with Label 2	Train Loader: 119 sample with Label 3	Train Loader: 150 sample with Label 4	Train Loader: 122 sample with Label 5	Train Loader: 153 sample with Label 6	Train Loader: 120 sample with Label 7	Train Loader: 134 sample with Label 8	Train Loader: 135 sample with Label 9	Validation Loader: 39 sample with Label 0	Validation Loader: 38 sample with Label 1	Validation Loader: 32 sample with Label 2	Validation Loader: 29 sample with Label 3	Validation Loader: 40 sample with Label 4	Validation Loader: 33 sample with Label 5	Validation Loader: 30 sample with Label 6	Validation Loader: 33 sample with Label 7	Validation Loader: 31 sample with Label 8	Validation Loader: 29 sample with Label 9
 Client 6 - 	Train Loader: 139 sample with Label 0	Train Loader: 117 sample with Label 1	Train Loader: 141 sample with Label 2	Train Loader: 129 sample with Label 3	Train Loader: 141 sample with Label 4	Train Loader: 144 sample with Label 5	Train Loader: 127 sample with Label 6	Train Loader: 140 sample with Label 7	Train Loader: 121 sample with Label 8	Train Loader: 133 sample with Label 9	Validation Loader: 25 sample with Label 0	Validation Loader: 37 sample with Label 1	Validation Loader: 40 sample with Label 2	Validation Loader: 29 sample with Label 3	Validation Loader: 23 sample with Label 4	Validation Loader: 31 sample with Label 5	Validation Loader: 43 sample with Label 6	Validation Loader: 36 sample with Label 7	Validation Loader: 39 sample with Label 8	Validation Loader: 31 sample with Label 9
+
+GLOBAL TEST ROUND: 1 Evaluation -Loss: 0.003792285180091858 	Accuracy: 0.1834 	Training time: 16.4364288s
+Energy Computation: 1.6436428799999991 	Energy Communication: 26.586493660000002 	Number of communications: 152 
+
+GLOBAL TEST ROUND: 2 Evaluation -Loss: 0.003389411759376526 	Accuracy: 0.2822 	Training time: 16.4364288s
+Energy Computation: 1.6436428799999996 	Energy Communication: 26.586493660000002 	Number of communications: 152 
+
+GLOBAL TEST ROUND: 3 Evaluation -Loss: 0.00318814857006073 	Accuracy: 0.3209 	Training time: 16.4364288s
+Energy Computation: 1.6436428799999994 	Energy Communication: 26.586493659999995 	Number of communications: 152 
+
+SUMMARY EXPERIMENTS-
+Loss: 0.003792285180091858 	Accuracy: 0.1834 	Training time: 16.4364288s	Energy Computation: 1.6436428799999991 	                             Energy Communication: 26.586493660000002 	                             Total Energy: 28.23013654 	                             Number of communications: 152
+ Loss: 0.003389411759376526 	Accuracy: 0.2822 	Training time: 32.8728576s	Energy Computation: 3.2872857599999987 	                             Energy Communication: 53.172987320000004 	                             Total Energy: 56.46027308 	                             Number of communications: 304
+ Loss: 0.00318814857006073 	Accuracy: 0.3209 	Training time: 49.309286400000005s	Energy Computation: 4.930928639999998 	                             Energy Communication: 79.75948098 	                             Total Energy: 84.69040962 	                             Number of communications: 456
+ 
+
+SUMMARY DRONE STATISTICS-
+
+Drone 0 -	 Battery Level: 99.9993211821% -	 Communications with base stations: 13 
+Drone 1 -	 Battery Level: 99.9990600983% -	 Communications with base stations: 18 
+Drone 2 -	 Battery Level: 99.9990078815% -	 Communications with base stations: 19 
+Drone 3 -	 Battery Level: 99.999112315% -	 Communications with base stations: 17 
+Drone 4 -	 Battery Level: 99.9993211821% -	 Communications with base stations: 13 
+Drone 5 -	 Battery Level: 99.9991645318% -	 Communications with base stations: 16 
+Drone 6 -	 Battery Level: 99.9990600983% -	 Communications with base stations: 18 
+Drone 7 -	 Battery Level: 99.999112315% -	 Communications with base stations: 17 
+Drone 8 -	 Battery Level: 99.9992167486% -	 Communications with base stations: 15 
+Drone 9 -	 Battery Level: 99.9990600983% -	 Communications with base stations: 18 
+Drone 10 -	 Battery Level: 99.9993733988% -	 Communications with base stations: 12 
+Drone 11 -	 Battery Level: 99.9991645318% -	 Communications with base stations: 16 
+Drone 12 -	 Battery Level: 99.9992167486% -	 Communications with base stations: 15 
+Drone 13 -	 Battery Level: 99.9995300491% -	 Communications with base stations: 9 
+Drone 14 -	 Battery Level: 99.9991645318% -	 Communications with base stations: 16 
+Drone 15 -	 Battery Level: 99.9992689653% -	 Communications with base stations: 14 
+Drone 16 -	 Battery Level: 99.9992167486% -	 Communications with base stations: 15 
+Drone 17 -	 Battery Level: 99.9994778324% -	 Communications with base stations: 10 
+Drone 18 -	 Battery Level: 99.999112315% -	 Communications with base stations: 17 
+Drone 19 -	 Battery Level: 99.999112315% -	 Communications with base stations: 17 
+Drone 20 -	 Battery Level: 99.999112315% -	 Communications with base stations: 17 
+Drone 21 -	 Battery Level: 99.9993733988% -	 Communications with base stations: 12 
+Drone 22 -	 Battery Level: 99.9992689653% -	 Communications with base stations: 14 
+Drone 23 -	 Battery Level: 99.9993733988% -	 Communications with base stations: 12 
+Drone 24 -	 Battery Level: 99.9992167486% -	 Communications with base stations: 15 
+Drone 25 -	 Battery Level: 99.999112315% -	 Communications with base stations: 17 
+Drone 26 -	 Battery Level: 99.9991645318% -	 Communications with base stations: 16 
+Drone 27 -	 Battery Level: 99.9992167486% -	 Communications with base stations: 15 
+Drone 28 -	 Battery Level: 99.999112315% -	 Communications with base stations: 17 
+Drone 29 -	 Battery Level: 99.9991645318% -	 Communications with base stations: 16 
