@@ -6,9 +6,9 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.callbacks import EvalCallback
-
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3 import PPO
+
+from stable_baselines3 import PPO,A2C
 import os
 import random
 import ray
@@ -405,19 +405,19 @@ class OptHierFLEnv(Env):
                 '''
 
         # Risultati della simulazione
-        results = {
-            'accuracy': observation[0],
-            'training_time': observation[1],
-            'total_energy': observation[2],
-        }
+        
+        accuracy= observation[0]
+        training_time= observation[1]
+        total_energy= observation[2]
+        
 
 
 
         if len(self.state_history)>=2:
             previous_obs=self.state_history[-2]
-            delta_acc=results["accuracy"]-previous_obs[0]
-            delta_time=previous_obs[1]-results["training_time"]
-            delta_energy=previous_obs[2]-results["total_energy"]
+            delta_acc=accuracy-previous_obs[0]
+            delta_time=previous_obs[1]-training_time
+            delta_energy=previous_obs[2]- total_energy
         else:
             previous_obs=observation
             # Se non ci sono stati precedenti, non c'è miglioramento 
@@ -427,36 +427,23 @@ class OptHierFLEnv(Env):
         
         
         # Componenti della reward
-        w_acc = 1.5 # Main driver: accuracy  
-        w_time = 0.6 # Penalty for time   
-        w_energy = 0.9  # Penalty for total energy  
+        w_acc = 1.0 # Main driver: accuracy  
+        w_time = 0.5 # Penalty for time   
+        w_energy = 0.3  # Penalty for total energy  
 
-        reward = (w_acc * delta_acc) - \
-                (w_time * delta_time) - \
+        ''' #REWARD DIFFERENZIALE
+        reward = (w_acc * delta_acc) + \
+                (w_time * delta_time) + \
                 (w_energy * delta_energy) +\
-                (results['accuracy']*w_acc) -\
-                (w_energy * results['total_energy']) -\
-                (w_time * results['training_time']) 
+                (results['accuracy']*w_acc) +\
+                (w_energy * results['total_energy']) +\
+                (w_time * results['training_time']) '''
         
-
-        '''# Bonus per accuracy alta (reward progressivo)
-        if results['accuracy'] > 0.7:
-            reward += 0.3
-        elif results['accuracy'] > 0.5:
-            reward += 0.1
+        #REWARD ASSOLUTA
+        reward=w_acc * accuracy - \
+                w_time * training_time - \
+                w_energy * total_energy 
         
-        # Penalità per performance scarse
-        if results["accuracy"] < 0.2:
-            reward -= 0.5
-        
-        #penalità time alti
-        if results["training_time"] > 0.6:
-            reward-=1  
-        '''
-
-        '''T=max(0.01,np.exp(-0.05*self.episode_count))
-        exploration_noise=T*np.random.uniform(-0.2,0.2)
-        reward+=exploration_noise'''
 
         return reward
 
@@ -645,8 +632,8 @@ class OptHierFLEnv(Env):
 
 if __name__ == "__main__":
     # Inizializza l'ambiente di ottimizzazione per HierFL
-    env = OptHierFLEnv(env_name="HierFL-v0", max_round=0, global_rounds=3,history_len=1)  
-    
+    env = Monitor(OptHierFLEnv(env_name="HierFL-v0", max_round=1, global_rounds=3, history_len=1), filename="./logs/")
+    log_path = os.path.join('Training', 'Logs')
 
     log_path = os.path.join('Training', 'Logs')
 
@@ -654,13 +641,15 @@ if __name__ == "__main__":
     model = PPO(
         "MlpPolicy",
         env,
-        learning_rate=3e-4,    # default SB3, stabile
-        n_steps=32,          # Esegui 32 simulazioni prima di un update della policy.
-        batch_size=16,       # Suddividi i 32 campioni in mini-batch da 16 per l'update.
-        n_epochs=5,         # Ripeti l'update sui dati raccolti per 10 volte
+        n_steps=128,          # Esegui 32 simulazioni prima di un update della policy.
+        batch_size=32,       # Suddividi i 32 campioni in mini-batch da 16 per l'update.
+        n_epochs=8,         # Ripeti l'update sui dati raccolti per 10 volte
         verbose=1,
-        gamma=0.99
     )
+
+    eval_callback = EvalCallback(env, best_model_save_path='./logs/',
+                                 log_path='./logs/', eval_freq=10,
+                                 deterministic=True, render=False)
 
     # total_timesteps è ora il NUMERO TOTALE DI SIMULAZIONI che vuoi eseguire.
     # Iniziamo con 250. Se una simulazione dura 2 minuti, il training durerà circa 8.3 ore.
@@ -678,5 +667,6 @@ if __name__ == "__main__":
     print("Training completed.")
     # Esegui un test dell'ambiente
     avg_reward,std_reward=evaluate_policy(model, env, n_eval_episodes=10, render=True)
-    print(avg_reward)
-    print(std_reward)
+    print(f"Average Reward: {avg_reward:.3f} ± {std_reward:.3f}")
+    # Chiudi l'ambiente
+    env.close()
