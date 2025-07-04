@@ -94,4 +94,4 @@ if __name__ == "__main__":
     ax.legend()
     plt.grid(True, axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
-    plt.show()
+    plt.savefig("ppo_vs_random.png")
