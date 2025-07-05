@@ -651,7 +651,7 @@ if __name__ == "__main__":
     log_path = os.path.join('Training', 'Logs')
 
     # PARAMETRI PPO MIGLIORATI
-    model = PPO(
+    '''model = PPO(
         "MlpPolicy",
         env,
         learning_rate=3e-4,    # default SB3, stabile
@@ -660,11 +660,13 @@ if __name__ == "__main__":
         n_epochs=5,         # Ripeti l'update sui dati raccolti per 10 volte
         verbose=1,
         gamma=0.99
-    )
+    )'''
+
+    model=PPO.load("ppo_HierFL", env=env)  # Carica il modello pre-addestrato
 
     # total_timesteps è ora il NUMERO TOTALE DI SIMULAZIONI che vuoi eseguire.
     # Iniziamo con 250. Se una simulazione dura 2 minuti, il training durerà circa 8.3 ore.
-    TOTAL_SIMULATIONS = 250
+    TOTAL_SIMULATIONS = 100
     print(f"\nAVVIO TRAINING RL per {TOTAL_SIMULATIONS} simulazioni.")
     
     model.learn(total_timesteps=TOTAL_SIMULATIONS, progress_bar=True)
