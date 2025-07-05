@@ -1,2 +1,3 @@
 avg_reward=0.32651678919792176                                                                         
 std_reward=0.02257373802463423  
+UNTIL 267 OBS (265 +2 eval) 
