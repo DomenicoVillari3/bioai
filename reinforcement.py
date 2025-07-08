@@ -218,6 +218,7 @@ class OptHierFLEnv(Env):
         # Inizio del timer per l'esecuzione di HierFL
         init_time_run = time.time()  
         results = self.run_HierFL(k1, k2)
+        #results=self.simulate_hierfl(k1,k2)
         # Fine del timer per l'esecuzione di HierFL
         final_time_run = time.time()  
         # Calcola il tempo impiegato per l'esecuzione di HierFL
@@ -573,8 +574,8 @@ class OptHierFLEnv(Env):
         }
         
         # MAKE EXPERIMENTS REPEATABLE
-        torch.manual_seed(args['SEED'])
-        np.random.seed(args['SEED'])
+        #torch.manual_seed(args['SEED'])
+        #np.random.seed(args['SEED'])
         
         trainloaders, valloaders, testloader = load_datasets(args)
 

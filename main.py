@@ -13,12 +13,7 @@ from evaluate_model import evaluate_model
 
 
 if __name__ == "__main__":
-    EXPERIMENT_ID = 1
-
-    #Seed per Riproducibilità
-    torch.manual_seed(42)
-    np.random.seed(42)
-
+    EXPERIMENT_ID = 2
 
     # Inizializza l'ambiente
     env = OptHierFLEnv(env_name="HierFL-v0", max_round=3, global_rounds=3, history_len=3)
@@ -65,7 +60,7 @@ if __name__ == "__main__":
             learning_rate=3e-4, 
             n_steps=512, #maggior numero di step prima di update
             ent_coef=0.01, #incentiva esplorazione
-            batch_size=63,
+            batch_size=64,
             n_epochs=10,
             verbose=1,
             gamma=0.99
