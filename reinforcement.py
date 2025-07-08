@@ -15,6 +15,7 @@ import ray
 import csv
 from collections import deque 
 import time
+import sys
 
 import flwr as fl
 from flwr.common import Metrics
@@ -392,7 +393,7 @@ class OptHierFLEnv(Env):
 
     
 
-    def compute_reward(self, observation):
+    def compute_reward(self, observation):   
         '''Calcola la ricompensa in base ai risultati della simulazione.
         
         -Args:
@@ -414,12 +415,20 @@ class OptHierFLEnv(Env):
 
 
         if len(self.state_history)>=2:
-            previous_obs=self.state_history[-2]
+            delta_acc=0
+            delta_time=0
+            delta_energy=0
+            for i in range(len(self.state_history)-1):
+                #Cumulative delta on history 
+                delta_acc+=self.state_history[i+1][0]-self.state_history[i][0]
+                delta_time+=self.state_history[i+1][1]-self.state_history[i][1]
+                delta_energy+=self.state_history[i+1][2]-self.state_history[i][2]
+
+            '''previous_obs=self.state_history[-2]
             delta_acc=results["accuracy"]-previous_obs[0]
             delta_time=previous_obs[1]-results["training_time"]
-            delta_energy=previous_obs[2]-results["total_energy"]
+            delta_energy=previous_obs[2]-results["total_energy"]'''
         else:
-            previous_obs=observation
             # Se non ci sono stati precedenti, non c'è miglioramento 
             delta_acc = 0.0
             delta_time = 0.0
@@ -429,14 +438,16 @@ class OptHierFLEnv(Env):
         # Componenti della reward
         w_acc = 1.5 # Main driver: accuracy  
         w_time = 0.6 # Penalty for time   
-        w_energy = 0.9  # Penalty for total energy  
+        w_energy = 0.9  # Penalty for total energy 
 
-        reward = (w_acc * delta_acc) - \
-                (w_time * delta_time) - \
-                (w_energy * delta_energy) +\
-                (results['accuracy']*w_acc) -\
-                (w_energy * results['total_energy']) -\
-                (w_time * results['training_time']) 
+
+        reward =(results['accuracy']*w_acc) +\
+                (delta_acc) - \
+                (w_time * results['training_time']) -\
+                (delta_time) - \
+                (w_energy * results['total_energy'])  -\
+                (delta_energy)
+                
         
 
         '''# Bonus per accuracy alta (reward progressivo)
@@ -538,7 +549,7 @@ class OptHierFLEnv(Env):
 
         args = {
         'EXPERIMENT': 3,
-        'SEED': 1,
+        'SEED': 42,
         'DATASET': "cifar10",
         'DATA_DISTRIBUTION': "IID",
         'TYPE_DISTRIBUTION': "dirichlet",
@@ -561,6 +572,9 @@ class OptHierFLEnv(Env):
         'EXPONENTIAL_DECAY_RATE': 0.995
         }
         
+        # MAKE EXPERIMENTS REPEATABLE
+        torch.manual_seed(args['SEED'])
+        np.random.seed(args['SEED'])
         
         trainloaders, valloaders, testloader = load_datasets(args)
 
@@ -643,42 +657,3 @@ class OptHierFLEnv(Env):
         }   
     
 
-if __name__ == "__main__":
-    # Inizializza l'ambiente di ottimizzazione per HierFL
-    env = OptHierFLEnv(env_name="HierFL-v0", max_round=0, global_rounds=3,history_len=1)  
-    
-
-    log_path = os.path.join('Training', 'Logs')
-
-    # PARAMETRI PPO MIGLIORATI
-    '''model = PPO(
-        "MlpPolicy",
-        env,
-        learning_rate=3e-4,    # default SB3, stabile
-        n_steps=32,          # Esegui 32 simulazioni prima di un update della policy.
-        batch_size=16,       # Suddividi i 32 campioni in mini-batch da 16 per l'update.
-        n_epochs=5,         # Ripeti l'update sui dati raccolti per 10 volte
-        verbose=1,
-        gamma=0.99
-    )'''
-
-    model=PPO.load("ppo_HierFL", env=env)  # Carica il modello pre-addestrato
-
-    # total_timesteps è ora il NUMERO TOTALE DI SIMULAZIONI che vuoi eseguire.
-    # Iniziamo con 250. Se una simulazione dura 2 minuti, il training durerà circa 8.3 ore.
-    TOTAL_SIMULATIONS = 100
-    print(f"\nAVVIO TRAINING RL per {TOTAL_SIMULATIONS} simulazioni.")
-    
-    model.learn(total_timesteps=TOTAL_SIMULATIONS, progress_bar=True)
-
-   
- 
-
-    # Salva il modello finale
-    model.save("ppo_HierFL")
-    print("Model saved as ppo_HierFL")
-    print("Training completed.")
-    # Esegui un test dell'ambiente
-    avg_reward,std_reward=evaluate_policy(model, env, n_eval_episodes=10, render=True)
-    print(avg_reward)
-    print(std_reward)

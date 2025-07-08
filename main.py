@@ -1,104 +1,111 @@
-import flwr as fl
-from flwr.common import Metrics
-from logging import INFO, log, DEBUG
-
-from flwr.common import (
-    EvaluateIns,
-    EvaluateRes,
-    FitIns,
-    FitRes,
-    MetricsAggregationFn,
-    NDArrays,
-    Parameters,
-    Scalar,
-    ndarrays_to_parameters,
-    parameters_to_ndarrays,
-)
-
-from flwr.server.strategy.aggregate import aggregate
-
-import torch
-from typing import Dict, List, Optional, Tuple
-from torch.utils.tensorboard import SummaryWriter
-
-import multiprocessing
-import numpy as np
 import os
+import torch
+import numpy as np
+import csv
+from stable_baselines3 import PPO
+from stable_baselines3.common.evaluation import evaluate_policy
+import sys
 
-from model import Net, train, test, get_parameters, set_parameters
-from HierFL import HierFL
-from client import FlowerClient
-from strategy import FedAvgCustom
-from load_datasets import load_datasets
-from utils import generate_random_sizes
+from reinforcement import OptHierFLEnv 
+from evaluate_model import evaluate_model
 
+
+
+
+if __name__ == "__main__":
+    EXPERIMENT_ID = 1
+
+    #Seed per Riproducibilità
+    torch.manual_seed(42)
+    np.random.seed(42)
+
+
+    # Inizializza l'ambiente
+    env = OptHierFLEnv(env_name="HierFL-v0", max_round=0, global_rounds=3, history_len=3)
+    
+    # Percorsi
+    log_path = os.path.join("output", f"Experiment_{EXPERIMENT_ID}")
+    os.makedirs(log_path, exist_ok=True)
+
+    model_path = os.path.join(log_path, "ppo_HierFL")
+    best_model_path = os.path.join(log_path, "ppo_HierFL_best")
+    results_file = os.path.join(log_path, "training_results.csv")
+
+    #ONLY EVALUATION
+    if sys.argv[1]=="-e" or sys.argv[1]=="--evaluate":
+        if os.path.exists(best_model_path):
+            evaluate_model(env=env,weights_path=best_model_path,output_dir=log_path)
+        else:
+            print("ERROR: NESSUN MODELLO DA IMPORTARE!")
+        exit(1)
+
+    
+    # Parametri generali
+    TOTAL_SIMULATIONS = 750
+    STEP_SIZE = 10
+    PATIENCE = 5  # Early stopping patience
 
         
 
-def main():
-    args = {
-    'EXPERIMENT': 10,
-    'SEED': 1,
-    'DATASET': "cifar10",
-    'DATA_DISTRIBUTION': "IID",
-    'TYPE_DISTRIBUTION': "dirichlet",
-    'NUM_CLIENTS': 30, # 30
-    'LOCAL_ITERATIONS': 5, #
-    'EDGE_AGGREGATIONS': 2, # k2 10
-    'GLOBAL_ROUNDS': 15,
-    'TRAIN_PHASES': 5,
-    #'NUM_EDGES_SERVERS': 5,
-    'ACTUAL_GLOBAL_ROUND': 0,
-    'ACTUAL_EDGE_ROUND': 0,
-    'EDGE_CLIENTS': 10,
-    'CLIENT_FRACTION': 0.7,
-    'EVALUATE_FRACTION': 0.7,
-    'MIN_FIT_CLIENT': 6,
-    'MIN_EVALUATE_CLIENT': 6,
-    'MIN_AVAILABLE_CLIENT': 8,
-    'BATCH_SIZE': 20,
-    'LEARNING_RATE': 0.01,
-    'EXPONENTIAL_DECAY_RATE': 0.995
-    }
+    # CSV header
+    if not os.path.exists(results_file):
+        with open(results_file, mode='w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(["Step", "AvgReward", "StdDev"])
 
-    # MAKE EXPERIMENTS REPEATABLE
-    torch.manual_seed(args['SEED'])
-    np.random.seed(args['SEED'])
+    # Inizializza o carica il modello
+    if os.path.exists(model_path + ".zip"):
+        print("Carico modello esistente...")
+        model = PPO.load(model_path, env=env)
+    else:
+        print("Creo nuovo modello PPO...")
+        model = PPO(
+            "MlpPolicy",
+            env,
+            learning_rate=3e-4,
+            n_steps=32,
+            batch_size=16,
+            n_epochs=5,
+            verbose=1,
+            gamma=0.99
+        )
 
-    trainloaders, valloaders, testloader = load_datasets(args)
+    # Variabili per early stopping
+    best_avg_reward = -np.inf
+    no_improvement_steps = 0
 
-    args['DEVICE'] = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Try "cuda" to train on GPU
-    print(f"Training on {args['DEVICE']} using PyTorch {torch.__version__} and Flower {fl.__version__}")
+    # Training loop a step
+    for step in range(0, TOTAL_SIMULATIONS, STEP_SIZE):
+        print(f"\nTraining da step {step} a {step + STEP_SIZE}...")
 
-    # Specify the resources each of your clients need. 
-    # By default, each client will be allocated 1x CPU and 0x GPUs
-    client_resources = {"num_cpus": 1, "num_gpus": 0.0}
-    args['client_resources'] = client_resources
-    if args['DEVICE'].type == "cuda":
-        # here we are assigning an entire GPU for each client.
-        args['client_resources'] = {"num_cpus": 1, "num_gpus": 1}
+        model.learn(total_timesteps=STEP_SIZE, reset_num_timesteps=False, progress_bar=True)
 
-    # Leaf directory
-    directory = "Experiment_" + str(args['EXPERIMENT'])
-    # Parent Directories
-    parent_dir = "Experiments"
-    # Path
-    dir_path = os.path.join(parent_dir, directory)
-    args['dir_path'] = dir_path
-    # Create the directory 'ihritik'
-    try:
-        os.makedirs(dir_path, exist_ok=True)
-        print("Directory '%s' created successfully" % directory)
-    except OSError as error:
-        print("Directory '%s' can not be created")
-          
+        # Salva modello corrente
+        model.save(model_path)
+        print("Modello salvato:", model_path)
 
-    results=HierFL(args, trainloaders, valloaders, testloader)
-    print("Results: ", results)
-   
+        # Valutazione
+        avg_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10, render=False)
+        print(f"[Valutazione] Step {step + STEP_SIZE}: avg_reward = {avg_reward:.2f}, std_dev = {std_reward:.2f}")
 
-    
-if __name__ == "__main__":
-    main()
-    
+        # Scrivi CSV
+        with open(results_file, mode='a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([step + STEP_SIZE, avg_reward, std_reward])
 
+        # Early stopping check
+        if avg_reward > best_avg_reward:
+            best_avg_reward = avg_reward
+            no_improvement_steps = 0
+            model.save(best_model_path)
+            print(f"Nuovo best model salvato in: {best_model_path} [avg_reward = {avg_reward:.2f}]")
+        else:
+            no_improvement_steps += 1
+            print(f"Nessun miglioramento ({no_improvement_steps}/{PATIENCE})")
+
+        if no_improvement_steps >= PATIENCE:
+            print(f"\nEarly stopping attivato dopo {step + STEP_SIZE} timesteps. Training interrotto.")
+            break
+
+    print("\nTraining completato.")
+    print(f"Miglior reward: {best_avg_reward:.2f} | Modello salvato in {best_model_path}")
