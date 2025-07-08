@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
 
     # Inizializza l'ambiente
-    env = OptHierFLEnv(env_name="HierFL-v0", max_round=0, global_rounds=3, history_len=3)
+    env = OptHierFLEnv(env_name="HierFL-v0", max_round=3, global_rounds=3, history_len=3)
     
     # Percorsi
     log_path = os.path.join("output", f"Experiment_{EXPERIMENT_ID}")
