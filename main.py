@@ -62,10 +62,11 @@ if __name__ == "__main__":
         model = PPO(
             "MlpPolicy",
             env,
-            learning_rate=3e-4,
-            n_steps=32,
-            batch_size=16,
-            n_epochs=5,
+            learning_rate=3e-4, 
+            n_steps=512, #maggior numero di step prima di update
+            ent_coef=0.01, #incentiva esplorazione
+            batch_size=63,
+            n_epochs=10,
             verbose=1,
             gamma=0.99
         )
