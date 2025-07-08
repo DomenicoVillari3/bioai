@@ -32,7 +32,7 @@ if __name__ == "__main__":
     results_file = os.path.join(log_path, "training_results.csv")
 
     #ONLY EVALUATION
-    if sys.argv[1]=="-e" or sys.argv[1]=="--evaluate":
+    if  len(sys.argv)>1 and (sys.argv[1]=="-e" or sys.argv[1]=="--evaluate"):
         if os.path.exists(best_model_path):
             evaluate_model(env=env,weights_path=best_model_path,output_dir=log_path)
         else:
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     if not os.path.exists(results_file):
         with open(results_file, mode='w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(["Step", "AvgReward", "StdDev"])
+            writer.writerow(["Step", "AvgReward", "StdDevReward"])
 
     # Inizializza o carica il modello
     if os.path.exists(model_path + ".zip"):
