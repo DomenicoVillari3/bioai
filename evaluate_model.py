@@ -1,5 +1,5 @@
 import csv
-from reinforcement import OptHierFLEnv
+from OptHierFLEnv import OptHierFLEnv
 from stable_baselines3 import PPO
 import matplotlib.pyplot as plt
 import numpy as np

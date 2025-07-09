@@ -67,7 +67,7 @@ def estimate_energy_max(rounds):
 
 class OptHierFLEnv(Env):
     
-    def __init__(self, env_name: str,max_round: int = 1,global_rounds: int = 10,history_len: int = 3):
+    def __init__(self, env_name: str,max_round: int = 1,global_rounds: int = 10,history_len: int = 3,simulate: bool= False):
         '''Inizializzazione dell'ambiente di ottimizzazione per HierFL.
         
         -Args:
@@ -75,6 +75,7 @@ class OptHierFLEnv(Env):
             max_round: Numero massimo di round per episodio  (default 1, è un episodio completo)
             global_rounds: Numero di round globali HierFL 
             history_len: Lunghezza della storia degli stati (default 3, per POMDP)
+            simulate: per debug, simula HierFL per velocizzare il processo
 
 
         -Attribites:
@@ -95,6 +96,7 @@ class OptHierFLEnv(Env):
         self.max_round = max_round
         self.n_global_rounds = global_rounds
         self.history_len = history_len
+        self.simulate=simulate
     
         
         # Action space: k1 in [5, 25], k2 in [2, 10]
@@ -217,8 +219,11 @@ class OptHierFLEnv(Env):
         
         # Inizio del timer per l'esecuzione di HierFL
         init_time_run = time.time()  
-        results = self.run_HierFL(k1, k2)
-        #results=self.simulate_hierfl(k1,k2)
+        #If per determinare la simulazione 
+        if not self.simulate:
+            results = self.run_HierFL(k1, k2)
+        else:
+            results=self.simulate_hierfl(k1,k2)
         # Fine del timer per l'esecuzione di HierFL
         final_time_run = time.time()  
         # Calcola il tempo impiegato per l'esecuzione di HierFL
@@ -421,9 +426,9 @@ class OptHierFLEnv(Env):
             delta_energy=0
             for i in range(len(self.state_history)-1):
                 #Cumulative delta on history 
-                delta_acc+=self.state_history[i+1][0]-self.state_history[i][0]
-                delta_time+=self.state_history[i+1][1]-self.state_history[i][1]
-                delta_energy+=self.state_history[i+1][2]-self.state_history[i][2]
+                delta_acc+=self.state_history[i+1][0]-self.state_history[i][0] 
+                delta_time+=self.state_history[i][1]-self.state_history[i+1][1] #prev-curr -> smaller is better
+                delta_energy+=self.state_history[i][2]-self.state_history[i+1][2]#prev-curr -> smaller is better
 
             '''previous_obs=self.state_history[-2]
             delta_acc=results["accuracy"]-previous_obs[0]
@@ -440,14 +445,15 @@ class OptHierFLEnv(Env):
         w_acc = 1.5 # Main driver: accuracy  
         w_time = 0.6 # Penalty for time   
         w_energy = 0.9  # Penalty for total energy 
+        w_delta=1.0 #weights for improvements
 
 
         reward =(results['accuracy']*w_acc) +\
-                (delta_acc) - \
+                (delta_acc*w_delta) - \
                 (w_time * results['training_time']) -\
-                (delta_time) - \
+                (delta_time*w_delta) - \
                 (w_energy * results['total_energy'])  -\
-                (delta_energy)
+                (delta_energy*w_delta)
                 
         
 

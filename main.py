@@ -5,21 +5,36 @@ import csv
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 import sys
+import argparse
 
-from reinforcement import OptHierFLEnv 
+from OptHierFLEnv import OptHierFLEnv 
 from evaluate_model import evaluate_model
 
 
 
 
 if __name__ == "__main__":
-    EXPERIMENT_ID = 2
+    
+
+    parser = argparse.ArgumentParser(description="PPO Training and evaluation on OptHierFLEnv")
+    parser.add_argument("--evaluate", action="store_true",help="Evaluate Model already trained on path output/Experiment_X/ppo_HierFL_best.zip")
+    parser.add_argument("--env_name",type=str,default="HierFL-v0", help="name of OptHierFLEnv environment")
+    parser.add_argument("--output_dir",type=str,default="output", help="Path to output_dir")
+    parser.add_argument("--experiment_id",type=int,default=0,help="Id of the experiment")
+    parser.add_argument("--simulate", action="store_true",default=False, help="Use fast simulation instead of real HierFL run")
+
+    args = parser.parse_args()
+    env_name=args.env_name
+    out_dir=args.output_dir
+    experiment = args.experiment_id
+    
+
 
     # Inizializza l'ambiente
-    env = OptHierFLEnv(env_name="HierFL-v0", max_round=3, global_rounds=3, history_len=3)
+    env = OptHierFLEnv(env_name=env_name, max_round=3, global_rounds=3, history_len=3,simulate=args.simulate)
     
     # Percorsi
-    log_path = os.path.join("output", f"Experiment_{EXPERIMENT_ID}")
+    log_path = os.path.join("output", f"Experiment_{experiment}")
     os.makedirs(log_path, exist_ok=True)
 
     model_path = os.path.join(log_path, "ppo_HierFL")
@@ -27,17 +42,22 @@ if __name__ == "__main__":
     results_file = os.path.join(log_path, "training_results.csv")
 
     #ONLY EVALUATION
-    if  len(sys.argv)>1 and (sys.argv[1]=="-e" or sys.argv[1]=="--evaluate"):
-        if os.path.exists(best_model_path):
+    if  args.evaluate:
+        model_zip_path = best_model_path + ".zip"
+        if os.path.exists(model_zip_path):
             evaluate_model(env=env,weights_path=best_model_path,output_dir=log_path)
         else:
-            print("ERROR: NESSUN MODELLO DA IMPORTARE!")
-        exit(1)
+            print(f"ERROR: Model not found at {model_zip_path}")
+        exit(0) 
 
+    '''
+    total_timesteps (STEP SIZE) >= n_steps (ON PPO )
+    Se questo non è rispettato, PPO non esegue alcun aggiornamento della policy, e quindi il training è inutile.
+    '''
     
     # Parametri generali
-    TOTAL_SIMULATIONS = 750
-    STEP_SIZE = 10
+    TOTAL_SIMULATIONS = 1024
+    STEP_SIZE = 32
     PATIENCE = 5  # Early stopping patience
 
         
@@ -55,15 +75,13 @@ if __name__ == "__main__":
     else:
         print("Creo nuovo modello PPO...")
         model = PPO(
-            "MlpPolicy",
-            env,
-            learning_rate=3e-4, 
-            n_steps=512, #maggior numero di step prima di update
-            ent_coef=0.01, #incentiva esplorazione
-            batch_size=64,
-            n_epochs=10,
-            verbose=1,
-            gamma=0.99
+        "MlpPolicy",
+        env,
+        learning_rate=3e-4,    # default SB3, stabile
+        n_steps=32,          # Esegui 32 simulazioni prima di un update della policy.
+        batch_size=16,       # Suddividi i 32 campioni in mini-batch da 16 per l'update.
+        n_epochs=5,         # Ripeti l'update sui dati raccolti per 10 volte
+        gamma=0.99
         )
 
     # Variabili per early stopping
@@ -74,7 +92,7 @@ if __name__ == "__main__":
     for step in range(0, TOTAL_SIMULATIONS, STEP_SIZE):
         print(f"\nTraining da step {step} a {step + STEP_SIZE}...")
 
-        model.learn(total_timesteps=STEP_SIZE, reset_num_timesteps=False, progress_bar=True)
+        model.learn(total_timesteps=STEP_SIZE, reset_num_timesteps=False)
 
         # Salva modello corrente
         model.save(model_path)
