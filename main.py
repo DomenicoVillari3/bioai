@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
 
     # Inizializza l'ambiente
-    env = OptHierFLEnv(env_name=env_name, max_round=3, global_rounds=3, history_len=3,simulate=args.simulate)
+    env = OptHierFLEnv(env_name=env_name, max_round=3, global_rounds=3, history_len=1,simulate=args.simulate)
     
     # Percorsi
     log_path = os.path.join("output", f"Experiment_{experiment}")
@@ -56,9 +56,13 @@ if __name__ == "__main__":
     '''
     
     # Parametri generali
-    TOTAL_SIMULATIONS = 1024
-    STEP_SIZE = 32
-    PATIENCE = 5  # Early stopping patience
+    # Modalità reale: meno episodi, step più lunghi
+    TOTAL_EPISODES = 20
+    EPISODES_PER_STEP = 2
+    N_STEPS = 8  # Minimo per avere batch_size > 1
+    BATCH_SIZE = 4  # Minimo richiesto da PPO
+    PATIENCE=5
+
 
         
 
@@ -75,51 +79,79 @@ if __name__ == "__main__":
     else:
         print("Creo nuovo modello PPO...")
         model = PPO(
-        "MlpPolicy",
-        env,
-        learning_rate=3e-4,    # default SB3, stabile
-        n_steps=32,          # Esegui 32 simulazioni prima di un update della policy.
-        batch_size=16,       # Suddividi i 32 campioni in mini-batch da 16 per l'update.
-        n_epochs=5,         # Ripeti l'update sui dati raccolti per 10 volte
-        gamma=0.99
+            "MlpPolicy",
+            env,
+            learning_rate=3e-4,
+            n_steps=N_STEPS,      # RIDOTTO per HierFL reale
+            batch_size=BATCH_SIZE,  # Batch size adattivo
+            n_epochs=5,
+            gamma=0.99,
+            ent_coef=0.01,
+            verbose=1
         )
 
     # Variabili per early stopping
     best_avg_reward = -np.inf
-    no_improvement_steps = 0
+    no_improvement_episodes = 0
+    
+    print(f"Iniziando training con {TOTAL_EPISODES} episodi totali")
+    print(f"Simulazione: {args.simulate}")
+    print(f"Parametri PPO: n_steps={N_STEPS}, batch_size={BATCH_SIZE}")
 
-    # Training loop a step
-    for step in range(0, TOTAL_SIMULATIONS, STEP_SIZE):
-        print(f"\nTraining da step {step} a {step + STEP_SIZE}...")
+    # Training loop basato su episodi
+    for episode in range(0, TOTAL_EPISODES, EPISODES_PER_STEP):
+        print(f"\n=== Training episodi {episode} - {episode + EPISODES_PER_STEP} ===")
 
-        model.learn(total_timesteps=STEP_SIZE, reset_num_timesteps=False)
+        # Calcola timesteps necessari per completare gli episodi
+        # Ogni episodio ha max_round=3 step
+        timesteps_needed = EPISODES_PER_STEP * env.max_round
+        
+        print(f"Eseguendo {timesteps_needed} timesteps per {EPISODES_PER_STEP} episodi...")
+        
+        try:
+            # Training
+            model.learn(total_timesteps=timesteps_needed, reset_num_timesteps=False)
+            
+            # Salva modello corrente
+            model.save(model_path)
+            print(f"Modello salvato: {model_path}")
 
-        # Salva modello corrente
-        model.save(model_path)
-        print("Modello salvato:", model_path)
+            # Valutazione
+            print("Iniziando valutazione...")
+            n_eval_episodes =1  # Meno episodi per HierFL reale
+            avg_reward, std_reward = evaluate_policy(
+                model, env, 
+                n_eval_episodes=8, 
+                render=False,
+                deterministic=True
+            )
+            
+            current_episode = episode + EPISODES_PER_STEP
+            print(f"[Valutazione] Episodio {current_episode}: avg_reward = {avg_reward:.4f}, std_dev = {std_reward:.4f}")
 
-        # Valutazione
-        avg_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10, render=False)
-        print(f"[Valutazione] Step {step + STEP_SIZE}: avg_reward = {avg_reward:.2f}, std_dev = {std_reward:.2f}")
+            # Scrivi CSV
+            with open(results_file, mode='a', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([current_episode, avg_reward, std_reward])
 
-        # Scrivi CSV
-        with open(results_file, mode='a', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow([step + STEP_SIZE, avg_reward, std_reward])
+            # Early stopping check
+            if avg_reward > best_avg_reward:
+                best_avg_reward = avg_reward
+                no_improvement_episodes = 0
+                model.save(best_model_path)
+                print(f"Nuovo best model salvato in: {best_model_path} [avg_reward = {avg_reward:.4f}]")
+            else:
+                no_improvement_episodes += 1
+                print(f"Nessun miglioramento ({no_improvement_episodes}/{PATIENCE})")
 
-        # Early stopping check
-        if avg_reward > best_avg_reward:
-            best_avg_reward = avg_reward
-            no_improvement_steps = 0
-            model.save(best_model_path)
-            print(f"Nuovo best model salvato in: {best_model_path} [avg_reward = {avg_reward:.2f}]")
-        else:
-            no_improvement_steps += 1
-            print(f"Nessun miglioramento ({no_improvement_steps}/{PATIENCE})")
-
-        if no_improvement_steps >= PATIENCE:
-            print(f"\nEarly stopping attivato dopo {step + STEP_SIZE} timesteps. Training interrotto.")
-            break
+            if no_improvement_episodes >= PATIENCE:
+                print(f"\nEarly stopping attivato dopo {current_episode} episodi. Training interrotto.")
+                break
+                
+        except Exception as e:
+            print(f"Errore durante training episodio {episode}: {e}")
+            print("Continuando con il prossimo batch...")
+            continue
 
     print("\nTraining completato.")
-    print(f"Miglior reward: {best_avg_reward:.2f} | Modello salvato in {best_model_path}")
+    print(f"Miglior reward: {best_avg_reward:.4f} | Modello salvato in {best_model_path}")

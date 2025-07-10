@@ -355,7 +355,7 @@ class OptHierFLEnv(Env):
         
         # Reset history con stati diversificati
         self.state_history.clear()
-        for i in range(self.history_len):
+        for _ in range(self.history_len):
             initial_state = self.get_initial_env_state()
             self.state_history.append(initial_state)
 
@@ -491,7 +491,7 @@ class OptHierFLEnv(Env):
         if not os.path.exists(filename):
             with open(filename, 'w') as f:
                 csv_writer = csv.writer(f)
-                csv_writer.writerow(['k1','k2','score', 'step', 'accuracy_tot', 
+                csv_writer.writerow(['k1','k2','step','score', 'accuracy_tot', 
                                      'training_time_tot', 'computation_energy_tot', 'communication_energy_tot', 
                                      'total_energy_tot', 'communications_tot',
                                      "accuracy_avg",
