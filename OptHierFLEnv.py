@@ -445,7 +445,7 @@ class OptHierFLEnv(Env):
         w_acc = 1.5 # Main driver: accuracy  
         w_time = 0.6 # Penalty for time   
         w_energy = 0.9  # Penalty for total energy 
-        w_delta=1.0 #weights for improvements
+        w_delta=0.3 #weights for improvements
 
 
         reward =(results['accuracy']*w_acc) +\

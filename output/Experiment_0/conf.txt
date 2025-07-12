@@ -1,0 +1,19 @@
+TOTAL_EPISODES = 20           # N° totale di episodi completi
+EPISODES_PER_STEP = 2         # N° episodi per ogni iterazione del loop
+N_STEPS = 16                  # Timesteps per rollout buffer (dev’essere >= total_timesteps)
+BATCH_SIZE = 4                # Min batch_size per training
+PATIENCE = 5                  # Early stopping: episodi senza miglioramento
+
+env = OptHierFLEnv(env_name=env_name, max_round=3, global_rounds=3, history_len=1,simulate=args.simulate)
+    
+model = PPO(
+            "MlpPolicy",
+            env,
+            learning_rate=3e-4,
+            n_steps=N_STEPS,      # RIDOTTO per HierFL reale
+            batch_size=BATCH_SIZE,  # Batch size adattivo
+            n_epochs=5,
+            gamma=0.99,
+            ent_coef=0.01,
+            verbose=1
+        )

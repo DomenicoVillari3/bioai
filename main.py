@@ -31,7 +31,8 @@ if __name__ == "__main__":
 
 
     # Inizializza l'ambiente
-    env = OptHierFLEnv(env_name=env_name, max_round=3, global_rounds=3, history_len=1,simulate=args.simulate)
+    #max_round-> n° step per episodio 
+    env = OptHierFLEnv(env_name=env_name, max_round=3, global_rounds=3, history_len=3,simulate=args.simulate)
     
     # Percorsi
     log_path = os.path.join("output", f"Experiment_{experiment}")
@@ -55,15 +56,14 @@ if __name__ == "__main__":
     Se questo non è rispettato, PPO non esegue alcun aggiornamento della policy, e quindi il training è inutile.
     '''
     
-    # Parametri generali
-    # Modalità reale: meno episodi, step più lunghi
-    TOTAL_EPISODES = 20
-    EPISODES_PER_STEP = 2
-    N_STEPS = 8  # Minimo per avere batch_size > 1
-    BATCH_SIZE = 4  # Minimo richiesto da PPO
-    PATIENCE=5
+    TOTAL_EPISODES = 60           # N° totale di episodi completi
+    EPISODES_PER_STEP = 3       # N° episodi per ogni iterazione del loop
+    N_STEPS = 16                  # Timesteps per rollout buffer (dev’essere >= timesteps_needed)
+    BATCH_SIZE = 4                # Min batch_size per training
+    PATIENCE = 5                  # Early stopping: episodi senza miglioramento
 
 
+    #ogni episodio ha max_round=3 step -> EPISODES_PER_STEP * max_round = 6 timesteps per iterazione.
         
 
     # CSV header
@@ -83,7 +83,7 @@ if __name__ == "__main__":
             env,
             learning_rate=3e-4,
             n_steps=N_STEPS,      # RIDOTTO per HierFL reale
-            batch_size=BATCH_SIZE,  # Batch size adattivo
+            batch_size=BATCH_SIZE,  
             n_epochs=5,
             gamma=0.99,
             ent_coef=0.01,
@@ -103,8 +103,8 @@ if __name__ == "__main__":
         print(f"\n=== Training episodi {episode} - {episode + EPISODES_PER_STEP} ===")
 
         # Calcola timesteps necessari per completare gli episodi
-        # Ogni episodio ha max_round=3 step
-        timesteps_needed = EPISODES_PER_STEP * env.max_round
+        # Ogni episodio ha 3*2 step 
+        timesteps_needed = EPISODES_PER_STEP * env.max_round 
         
         print(f"Eseguendo {timesteps_needed} timesteps per {EPISODES_PER_STEP} episodi...")
         
