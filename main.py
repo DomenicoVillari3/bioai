@@ -117,19 +117,19 @@ if __name__ == "__main__":
             action = env.action_space.sample()  # Azione completamente casuale
             obs, reward, done, info = env.step(action)
     
-    print(f"Iniziando training con {conf["TOTAL_EPISODES"]} episodi totali")
+    print(f"Iniziando training con {conf['TOTAL_EPISODES']} episodi totali")
     print(f"Simulazione: {args.simulate}")
-    print(f"Parametri PPO: n_steps={conf["N_STEPS"]}, batch_size={conf["BATCH_SIZE"]}")
+    print(f"Parametri PPO: n_steps={conf['N_STEPS']}, batch_size={conf['BATCH_SIZE']}")
 
     # Training loop basato su episodi
     for episode in range(0, conf["TOTAL_EPISODES"], conf["EPISODES_PER_STEP"]):
-        print(f"\n=== Training episodi {episode} - {episode + conf["EPISODES_PER_STEP"]} ===")
+        print(f"\n=== Training episodi {episode} - {episode + conf['EPISODES_PER_STEP']} ===")
 
         # Calcola timesteps necessari per completare gli episodi
         # Ogni episodio ha 3*2 step 
         timesteps_needed = conf["EPISODES_PER_STEP"] * env.max_round 
         
-        print(f"Eseguendo {timesteps_needed} timesteps per {conf["EPISODES_PER_STEP"]} episodi...")
+        print(f"Eseguendo {timesteps_needed} timesteps per {conf['EPISODES_PER_STEP']} episodi...")
         
         try:
             # Training
@@ -165,7 +165,7 @@ if __name__ == "__main__":
                 print(f"Nuovo best model salvato in: {best_model_path} [avg_reward = {avg_reward:.4f}]")
             else:
                 no_improvement_episodes += 1
-                print(f"Nessun miglioramento ({no_improvement_episodes}/{conf["PATIENCE"]})")
+                print(f"Nessun miglioramento ({no_improvement_episodes}/{conf['PATIENCE']})")
 
             if no_improvement_episodes >= conf["PATIENCE"]:
                 print(f"\nEarly stopping attivato dopo {current_episode} episodi. Training interrotto.")
