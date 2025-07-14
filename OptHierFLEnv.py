@@ -399,84 +399,52 @@ class OptHierFLEnv(Env):
 
     
 
-    def compute_reward(self, observation):   
-        '''Calcola la ricompensa in base ai risultati della simulazione.
+    def compute_reward(self, observation):
+        """Reward multi-obiettivo: massimizza accuracy, minimizza tempo ed energia, e premia i miglioramenti."""
         
-        -Args:
-            observation: osservazione corrente dell'ambiente, un array con 3 valori normalizzati:
-                1) accuratezza [0,1]
-                2) tempo di training [0,1]
-                3) energia totale [0,1]
-        -Returns:
-                reward: ricompensa calcolata in base ai risultati della simulazione, un valore float
-                '''
+        acc = observation[0]
+        time = observation[1]
+        energy = observation[2]
 
-        # Risultati della simulazione
-        results = {
-            'accuracy': observation[0],
-            'training_time': observation[1],
-            'total_energy': observation[2],
-        }
+        # Delta su storia se disponibile
+        delta_acc = delta_time = delta_energy = 0.0
+        if len(self.state_history) >= 2:
+            for i in range(len(self.state_history) - 1):
+                delta_acc += self.state_history[i + 1][0] - self.state_history[i][0]
+                delta_time += self.state_history[i][1] - self.state_history[i + 1][1]
+                delta_energy += self.state_history[i][2] - self.state_history[i + 1][2]
 
+        # PESI — tuning finale
+        w_acc = 2.0      # peso principale per accuracy
+        w_time = 0.8     # penalità tempo
+        w_energy = 0.8   # penalità energia
+        w_delta = 1.0    # incentivo al miglioramento
 
+        # Reward base
+        reward = (
+            acc * w_acc +
+            delta_acc * w_delta -
+            time * w_time +
+            delta_time * (w_delta / 2.0) -
+            energy * w_energy +
+            delta_energy * (w_delta / 2.0)
+        )
 
-        if len(self.state_history)>=2:
-            delta_acc=0
-            delta_time=0
-            delta_energy=0
-            for i in range(len(self.state_history)-1):
-                #Cumulative delta on history 
-                delta_acc+=self.state_history[i+1][0]-self.state_history[i][0] 
-                delta_time+=self.state_history[i][1]-self.state_history[i+1][1] #prev-curr -> smaller is better
-                delta_energy+=self.state_history[i][2]-self.state_history[i+1][2]#prev-curr -> smaller is better
-
-            '''previous_obs=self.state_history[-2]
-            delta_acc=results["accuracy"]-previous_obs[0]
-            delta_time=previous_obs[1]-results["training_time"]
-            delta_energy=previous_obs[2]-results["total_energy"]'''
-        else:
-            # Se non ci sono stati precedenti, non c'è miglioramento 
-            delta_acc = 0.0
-            delta_time = 0.0
-            delta_energy = 0.0
-        
-        
-        # Componenti della reward
-        w_acc = 1.5 # Main driver: accuracy  
-        w_time = 0.6 # Penalty for time   
-        w_energy = 0.9  # Penalty for total energy 
-        w_delta=0.3 #weights for improvements
-
-
-        reward =(results['accuracy']*w_acc) +\
-                (delta_acc*w_delta) - \
-                (w_time * results['training_time']) -\
-                (delta_time*w_delta) - \
-                (w_energy * results['total_energy'])  -\
-                (delta_energy*w_delta)
-                
-        
-
-        '''# Bonus per accuracy alta (reward progressivo)
-        if results['accuracy'] > 0.7:
-            reward += 0.3
-        elif results['accuracy'] > 0.5:
-            reward += 0.1
-        
-        # Penalità per performance scarse
-        if results["accuracy"] < 0.2:
+        # Penalità extra se sopra soglia (soft constraint)
+        if time > 0.75:
             reward -= 0.5
-        
-        #penalità time alti
-        if results["training_time"] > 0.6:
-            reward-=1  
-        '''
+        if energy > 0.75:
+            reward -= 0.5
 
-        '''T=max(0.01,np.exp(-0.05*self.episode_count))
-        exploration_noise=T*np.random.uniform(-0.2,0.2)
-        reward+=exploration_noise'''
+        # Bonus per accuratezza elevata e stabile
+        if acc > 0.7 and delta_acc < 0.01:
+            reward += 0.3
+
+        # Clipping per stabilità
+        reward = np.clip(reward, -2.0, 2.0)
 
         return reward
+
 
 
     def write_summary(self,k1,k2, score, step,state,filename="reuslts_trained.csv"):
@@ -514,8 +482,8 @@ class OptHierFLEnv(Env):
             csv_writer.writerow([
                 k1,
                 k2,
-                score,
                 step,
+                score,
                 state["accuracy"],  # accuracy
                 state["training_time"],  # training_time
                 state["computation_energy"],  # computation_energy
