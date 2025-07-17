@@ -1,0 +1,5 @@
+env = OptHierFLEnv(env_name=env_name, 
+                       max_round=conf["max_rounds"], 
+                       global_rounds=conf["global_rounds"] ,
+                       history_len=conf["history_len"],
+                       simulate=args.simulate)

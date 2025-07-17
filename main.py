@@ -13,7 +13,7 @@ from evaluate_model import evaluate_model
 def save_conf(filename="conf.txt",conf=None):
     if conf:
         with open(file=filename,mode="w") as f:
-            f.write(conf)
+            f.write(str(conf))
 
 
 if __name__ == "__main__":
