@@ -548,8 +548,8 @@ class OptHierFLEnv(Env):
         }
         
         # MAKE EXPERIMENTS REPEATABLE
-        #torch.manual_seed(args['SEED'])
-        #np.random.seed(args['SEED'])
+        torch.manual_seed(args['SEED'])
+        np.random.seed(args['SEED'])
         
         trainloaders, valloaders, testloader = load_datasets(args)
 
