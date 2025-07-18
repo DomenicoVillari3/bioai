@@ -415,33 +415,33 @@ class OptHierFLEnv(Env):
                 delta_energy += self.state_history[i][2] - self.state_history[i + 1][2]
 
         # PESI — tuning finale
-        w_acc = 2.0      # peso principale per accuracy
-        w_time = 0.8     # penalità tempo
-        w_energy = 0.8   # penalità energia
-        w_delta = 1.0    # incentivo al miglioramento
+        w_acc = 0.4      # peso principale per accuracy
+        w_time = 0.15     # penalità tempo
+        w_energy = 0.45   # penalità energia
+        w_delta = 0.75    # incentivo al miglioramento
 
         # Reward base
         reward = (
             acc * w_acc +
             delta_acc * w_delta -
             time * w_time +
-            delta_time * (w_delta / 2.0) -
+            delta_time * (w_delta) -
             energy * w_energy +
-            delta_energy * (w_delta / 2.0)
+            delta_energy * (w_delta)
         )
 
         # Penalità extra se sopra soglia (soft constraint)
-        if time > 0.75:
-            reward -= 0.5
-        if energy > 0.75:
-            reward -= 0.5
+        #if time > 0.75:
+        #    reward -= 0.5
+        #if energy > 0.75:
+        #    reward -= 0.5
 
         # Bonus per accuratezza elevata e stabile
-        if acc > 0.7 and delta_acc < 0.01:
-            reward += 0.3
+        #if acc > 0.7 and delta_acc < 0.01:
+        #    reward += 0.3
 
         # Clipping per stabilità
-        reward = np.clip(reward, -2.0, 2.0)
+        #reward = np.clip(reward, -2.0, 2.0)
 
         return reward
 

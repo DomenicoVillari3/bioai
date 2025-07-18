@@ -40,7 +40,7 @@ if __name__ == "__main__":
     "PATIENCE" : 100,                 # Early stopping: episodi senza miglioramento
     "history_len": 3,
     "max_rounds":3,
-    "global_rounds":3,
+    "global_rounds":25,
     "epochs":5,
     "random_episodes":5
     }
@@ -144,7 +144,7 @@ if __name__ == "__main__":
             n_eval_episodes =1  # Meno episodi per HierFL reale
             avg_reward, std_reward = evaluate_policy(
                 model, env, 
-                n_eval_episodes=5, 
+                n_eval_episodes=1, 
                 render=False,
                 deterministic=True
             )
