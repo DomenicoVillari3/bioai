@@ -13,6 +13,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Net(nn.Module):
     #CIFAR 10
+    '''
     def __init__(self) -> None:
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)
@@ -30,37 +31,36 @@ class Net(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
-
+    '''
     
         
     
 
     # MNIST
-    # def __init__(self):
-    #     super().__init__()
-    #     # First convolutional layer: 1 input channel (grayscale), 32 output channels, 5x5 kernel
-    #     self.conv1 = nn.Conv2d(1, 32, kernel_size=5)
-    #     # Second convolutional layer: 32 input channels, 64 output channels, 5x5 kernel
-    #     self.conv2 = nn.Conv2d(32, 64, kernel_size=5)
-    #     # Fully connected layer: 1024 input features (64*4*4 after pooling), 512 output features
-    #     self.fc1 = nn.Linear(64 * 4 * 4, 512)
-    #     # Output layer: 512 input features, 10 output features (for 10 MNIST classes)
-    #     self.fc2 = nn.Linear(512, 10)
-
-    # def forward(self, x):
-    #     # Apply the first convolution, ReLU, and max pooling
-    #     x = F.relu(self.conv1(x))
-    #     x = F.max_pool2d(x, 2)
-    #     # Apply the second convolution, ReLU, and max pooling
-    #     x = F.relu(self.conv2(x))
-    #     x = F.max_pool2d(x, 2)
-    #     # Flatten the tensor
-    #     x = x.view(-1, 64 * 4 * 4)
-    #     # Apply the fully connected layer with ReLU
-    #     x = F.relu(self.fc1(x))
-    #     # Apply the output layer
-    #     x = self.fc2(x)
-    #     return x
+    def __init__(self):
+         super().__init__()
+         # First convolutional layer: 1 input channel (grayscale), 32 output channels, 5x5 kernel
+         self.conv1 = nn.Conv2d(1, 32, kernel_size=5)
+         # Second convolutional layer: 32 input channels, 64 output channels, 5x5 kernel
+         self.conv2 = nn.Conv2d(32, 64, kernel_size=5)
+         # Fully connected layer: 1024 input features (64*4*4 after pooling), 512 output features
+         self.fc1 = nn.Linear(64 * 4 * 4, 512)
+         # Output layer: 512 input features, 10 output features (for 10 MNIST classes)
+         self.fc2 = nn.Linear(512, 10)
+    def forward(self, x):
+         # Apply the first convolution, ReLU, and max pooling
+         x = F.relu(self.conv1(x))
+         x = F.max_pool2d(x, 2)
+       # Apply the second convolution, ReLU, and max pooling
+         x = F.relu(self.conv2(x))
+         x = F.max_pool2d(x, 2)
+         # Flatten the tensor
+         x = x.view(-1, 64 * 4 * 4)
+         # Apply the fully connected layer with ReLU
+         x = F.relu(self.fc1(x))
+         # Apply the output layer
+         x = self.fc2(x)
+         return x
     
     # MNIST LIGHT VERSION
 
@@ -157,7 +157,7 @@ def train(net, trainloader, droneManager, hyperparameters, verbose=False):
     
     for epoch in range(1000):
         for i, batch in enumerate(trainloader):
-            images, labels = batch["img"].to(DEVICE), batch["label"].to(DEVICE)
+            images, labels = batch["image"].to(DEVICE), batch["label"].to(DEVICE)
             #print(f"len labels for batch {i}: {len(labels)}")
 
             #STARTING TIME
@@ -222,7 +222,7 @@ def test(net, testloader):
     net.eval()
     with torch.no_grad():
         for batch in testloader:
-            images, labels = batch["img"].to(DEVICE), batch["label"].to(DEVICE)
+            images, labels = batch["image"].to(DEVICE), batch["label"].to(DEVICE)
             #print(labels)
             outputs = net(images)
             #print(outputs)

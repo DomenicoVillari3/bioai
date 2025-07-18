@@ -33,7 +33,7 @@ if __name__ == "__main__":
     
 
     conf={
-    "TOTAL_EPISODES": 200,          # N° totale di episodi completi
+    "TOTAL_EPISODES": 400,          # N° totale di episodi completi
     "EPISODES_PER_STEP" : 20,   # N° episodi per ogni iterazione del loop  
     "N_STEPS" : 64,                  # Timesteps per rollout buffer (dev’essere >= EPISODES_PER_STEP*max_rounds)
     "BATCH_SIZE" : 32,                # Min batch_size per training (dev’essere <= N_STEPS)

@@ -525,7 +525,7 @@ class OptHierFLEnv(Env):
         args = {
         'EXPERIMENT': 3,
         'SEED': 42,
-        'DATASET': "cifar10",
+        'DATASET': "mnist",
         'DATA_DISTRIBUTION': "IID",
         'TYPE_DISTRIBUTION': "dirichlet",
         'NUM_CLIENTS': 30, # 30
