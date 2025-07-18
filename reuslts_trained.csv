@@ -1,0 +1,2 @@
+k1,k2,step,score,accuracy_tot,training_time_tot,computation_energy_tot,communication_energy_tot,total_energy_tot,communications_tot,accuracy_avg,training_time_avg,computation_energy_avg,communication_energy_avg,total_energy_avg,communications_avg,normalized_accuracy,normalized_training_time,normalized_total_energy
+22,4,1,2.0,2.8588,98.61857279999997,9.861857279999999,748.6709619144003,758.5328191944003,456,0.9529333333333333,32.87285759999999,3.2872857599999996,249.55698730480012,252.8442730648001,152.0,0.9529333333333333,0.08218214399999997,0.3565437790854895
