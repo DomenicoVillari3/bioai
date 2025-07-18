@@ -157,7 +157,10 @@ def train(net, trainloader, droneManager, hyperparameters, verbose=False):
     
     for epoch in range(1000):
         for i, batch in enumerate(trainloader):
-            images, labels = batch["image"].to(DEVICE), batch["label"].to(DEVICE)
+            if "img" in batch:
+                images, labels = batch["img"].to(DEVICE), batch["label"].to(DEVICE)
+            else:
+                images, labels = batch["image"].to(DEVICE), batch["label"].to(DEVICE)
             #print(f"len labels for batch {i}: {len(labels)}")
 
             #STARTING TIME
@@ -222,7 +225,10 @@ def test(net, testloader):
     net.eval()
     with torch.no_grad():
         for batch in testloader:
-            images, labels = batch["image"].to(DEVICE), batch["label"].to(DEVICE)
+            if "img" in batch:
+                images, labels = batch["img"].to(DEVICE), batch["label"].to(DEVICE)
+            else:
+                images, labels = batch["image"].to(DEVICE), batch["label"].to(DEVICE)
             #print(labels)
             outputs = net(images)
             #print(outputs)
