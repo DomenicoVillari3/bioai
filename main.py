@@ -40,7 +40,7 @@ if __name__ == "__main__":
     "PATIENCE" : 100,                 # Early stopping: episodi senza miglioramento
     "history_len": 3,
     "max_rounds":3,
-    "global_rounds":25,
+    "global_rounds":3,
     "epochs":5,
     "random_episodes":5
     }
