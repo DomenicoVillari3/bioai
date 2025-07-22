@@ -38,7 +38,7 @@ if __name__ == "__main__":
     "N_STEPS" : 64,                  # Timesteps per rollout buffer (dev’essere >= EPISODES_PER_STEP*max_rounds)
     "BATCH_SIZE" : 32,                # Min batch_size per training (dev’essere <= N_STEPS)
     "PATIENCE" : 100,                 # Early stopping: episodi senza miglioramento
-    "history_len": 3,
+    "history_len": 1,
     "max_rounds":3,
     "global_rounds":3,
     "epochs":5,
@@ -144,7 +144,7 @@ if __name__ == "__main__":
             n_eval_episodes =1  # Meno episodi per HierFL reale
             avg_reward, std_reward = evaluate_policy(
                 model, env, 
-                n_eval_episodes=1, 
+                n_eval_episodes=5, 
                 render=False,
                 deterministic=True
             )

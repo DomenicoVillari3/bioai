@@ -418,7 +418,7 @@ class OptHierFLEnv(Env):
         w_acc = 0.4      # peso principale per accuracy
         w_time = 0.15     # penalità tempo
         w_energy = 0.45   # penalità energia
-        w_delta = 0.75    # incentivo al miglioramento
+        w_delta = 1.0    # incentivo al miglioramento
 
         # Reward base
         reward = (
@@ -436,7 +436,7 @@ class OptHierFLEnv(Env):
         #if energy > 0.75:
         #    reward -= 0.5
 
-        # Bonus per accuratezza elevata e stabile
+        #Bonus per accuratezza elevata e stabile
         #if acc > 0.7 and delta_acc < 0.01:
         #    reward += 0.3
 
