@@ -413,6 +413,15 @@ class OptHierFLEnv(Env):
                 delta_acc += self.state_history[i + 1][0] - self.state_history[i][0]
                 delta_time += self.state_history[i][1] - self.state_history[i + 1][1]
                 delta_energy += self.state_history[i][2] - self.state_history[i + 1][2]
+        
+        #do bonus solo se i delta sono positivi
+        #(altrimenti se il modello non migliora, non viene premiato e non è incentivato ad esplorare)
+        if delta_acc < 0:
+            delta_acc = 0.0
+        if delta_time < 0:
+            delta_time = 0.0
+        if delta_energy < 0:
+            delta_energy = 0.0
 
         # PESI — tuning finale
         w_acc = 0.4      # peso principale per accuracy
@@ -550,8 +559,8 @@ class OptHierFLEnv(Env):
         }
         
         # MAKE EXPERIMENTS REPEATABLE
-        torch.manual_seed(args['SEED'])
-        np.random.seed(args['SEED'])
+        #torch.manual_seed(args['SEED'])
+        #np.random.seed(args['SEED'])
         
         trainloaders, valloaders, testloader = load_datasets(args)
 

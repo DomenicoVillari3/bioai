@@ -6,6 +6,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 import sys
 import argparse
+import random
 
 from OptHierFLEnv import OptHierFLEnv 
 from evaluate_model import evaluate_model
@@ -35,15 +36,20 @@ if __name__ == "__main__":
     conf={
     "TOTAL_EPISODES": 400,          # N° totale di episodi completi
     "EPISODES_PER_STEP" : 20,   # N° episodi per ogni iterazione del loop  
-    "N_STEPS" : 64,                  # Timesteps per rollout buffer (dev’essere >= EPISODES_PER_STEP*max_rounds)
+    "N_STEPS" : 128,                  # Timesteps per rollout buffer (dev’essere >= EPISODES_PER_STEP*max_rounds)
     "BATCH_SIZE" : 32,                # Min batch_size per training (dev’essere <= N_STEPS)
-    "PATIENCE" : 100,                 # Early stopping: episodi senza miglioramento
+    "PATIENCE" : 15,                 # Early stopping: episodi senza miglioramento
     "history_len": 3,
     "max_rounds":3,
     "global_rounds":3,
     "epochs":5,
     "random_episodes":5
     }
+
+    # IMPOSTA I SEED QUI, UNA SOLA VOLTA
+    np.random.seed(42)
+    torch.manual_seed(42)
+    random.seed(42)
 
 
     # Inizializza l'ambiente
@@ -99,7 +105,8 @@ if __name__ == "__main__":
             n_steps=conf["N_STEPS"],      # RIDOTTO per HierFL reale
             batch_size=conf["BATCH_SIZE"],  
             n_epochs=5,
-            verbose=1
+            verbose=1,
+            ent_coef=0.001 #esplorazione "forzata" per evitare che il modello si blocchi su una policy sub-ottimale"
         )
 
     # Variabili per early stopping
