@@ -60,7 +60,7 @@ if __name__ == "__main__":
     np.random.seed(42)
     torch.manual_seed(42)
     random.seed(42)
-    env.seed(42)  # Imposta il seed per l'ambiente
+    
 
     
     # Percorsi
