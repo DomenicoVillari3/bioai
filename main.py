@@ -46,11 +46,7 @@ if __name__ == "__main__":
     "random_episodes":5
     }
 
-    # IMPOSTA I SEED QUI, UNA SOLA VOLTA
-    np.random.seed(42)
-    torch.manual_seed(42)
-    random.seed(42)
-
+    
 
     # Inizializza l'ambiente
     #max_round-> n° step per episodio 
@@ -59,6 +55,13 @@ if __name__ == "__main__":
                        global_rounds=conf["global_rounds"] ,
                        history_len=conf["history_len"],
                        simulate=args.simulate)
+    
+    # IMPOSTA I SEED QUI, UNA SOLA VOLTA
+    np.random.seed(42)
+    torch.manual_seed(42)
+    random.seed(42)
+    env.seed(42)  # Imposta il seed per l'ambiente
+
     
     # Percorsi
     log_path = os.path.join("output", f"Experiment_{experiment}")
