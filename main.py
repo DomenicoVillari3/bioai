@@ -11,147 +11,143 @@ import random
 from OptHierFLEnv import OptHierFLEnv 
 from evaluate_model import evaluate_model
 
-def save_conf(filename="conf.txt",conf=None):
+def save_conf(filename="conf.txt", conf=None):
+    """Save configuration to file"""
     if conf:
-        with open(file=filename,mode="w") as f:
+        with open(file=filename, mode="w") as f:
             f.write(str(conf))
 
+def create_env(env_name, conf, simulate=False):
+    """Create and return environment instance"""
+    return OptHierFLEnv(
+        env_name=env_name, 
+        max_round=conf["max_rounds"], 
+        global_rounds=conf["global_rounds"],
+        history_len=conf["history_len"],
+        simulate=simulate
+    )
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="PPO Training and evaluation on OptHierFLEnv")
-    parser.add_argument("--evaluate", action="store_true",help="Evaluate Model already trained on path output/Experiment_X/ppo_HierFL_best.zip")
-    parser.add_argument("--env_name",type=str,default="HierFL-v0", help="name of OptHierFLEnv environment")
-    parser.add_argument("--output_dir",type=str,default="output", help="Path to output_dir")
-    parser.add_argument("--experiment_id",type=int,default=0,help="Id of the experiment")
-    parser.add_argument("--simulate", action="store_true",default=False, help="Use fast simulation instead of real HierFL run")
-    
-
-
-    args = parser.parse_args()
-    env_name=args.env_name
-    out_dir=args.output_dir
-    experiment = args.experiment_id
-    
-
-    conf={
-    "TOTAL_EPISODES": 400,          # N° totale di episodi completi
-    "EPISODES_PER_STEP" : 20,   # N° episodi per ogni iterazione del loop  
-    "N_STEPS" : 128,                  # Timesteps per rollout buffer (dev’essere >= EPISODES_PER_STEP*max_rounds)
-    "BATCH_SIZE" : 32,                # Min batch_size per training (dev’essere <= N_STEPS)
-    "PATIENCE" : 15,                 # Early stopping: episodi senza miglioramento
-    "history_len": 3,
-    "max_rounds":3,
-    "global_rounds":3,
-    "epochs":5,
-    "random_episodes":5
-    }
-
-    
-
-    # Inizializza l'ambiente
-    #max_round-> n° step per episodio 
-    env = OptHierFLEnv(env_name=env_name, 
-                       max_round=conf["max_rounds"], 
-                       global_rounds=conf["global_rounds"] ,
-                       history_len=conf["history_len"],
-                       simulate=args.simulate)
-    
-    # IMPOSTA I SEED QUI, UNA SOLA VOLTA
-    np.random.seed(42)
-    torch.manual_seed(42)
-    random.seed(42)
-    
-
-    
-    # Percorsi
-    log_path = os.path.join("output", f"Experiment_{experiment}")
+def setup_directories(experiment_id):
+    """Create and return necessary directories"""
+    log_path = os.path.join("output", f"Experiment_{experiment_id}")
     os.makedirs(log_path, exist_ok=True)
-
+    
     model_path = os.path.join(log_path, "ppo_HierFL")
     best_model_path = os.path.join(log_path, "ppo_HierFL_best")
     results_file = os.path.join(log_path, "training_results.csv")
-
-    #ONLY EVALUATION
-    if  args.evaluate:
-        model_zip_path = best_model_path + ".zip"
-        if os.path.exists(model_zip_path):
-            evaluate_model(env=env,weights_path=best_model_path,output_dir=log_path)
-        else:
-            print(f"ERROR: Model not found at {model_zip_path}")
-        exit(0) 
-
-    '''
-    total_timesteps (STEP SIZE) >= n_steps (ON PPO )
-    Se questo non è rispettato, PPO non esegue alcun aggiornamento della policy, e quindi il training è inutile.
-    '''
     
-    
+    return log_path, model_path, best_model_path, results_file
 
-    #ogni episodio ha max_round=3 step -> conf["EPISODES_PER_STEP"] * max_round = 6 timesteps per iterazione.
+def create_or_load_model(model_path, env, conf, retrain=False):
+    """Create new model or load existing one"""
+    model_file = model_path + ".zip"
+    
+    if retrain and os.path.exists(model_file):
+        print(f"Loading existing model for retraining: {model_file}")
+        # Backup existing model
+        backup_path = model_path + "_backup.zip"
+        os.system(f'cp {model_file} {backup_path}')
+        model = PPO.load(model_path, env=env, tensorboard_log="./ppo_hierfl_tensorboard/")
+    elif os.path.exists(model_file) and not retrain:
+        print(f"Loading existing model: {model_file}")
+        model = PPO.load(model_path, env=env)
+    else:
+        print("Creating new PPO model...")
+        model = PPO(
+            "MlpPolicy",
+            env,
+            learning_rate=conf["learning_rate"],
+            n_steps=conf["N_STEPS"],
+            batch_size=conf["BATCH_SIZE"],  
+            n_epochs=conf["epochs"],
+            verbose=1,
+            ent_coef=conf["ent_coef"])
+    
+    return model
+
+def random_exploration(env, episodes):
+    """Perform random exploration phase"""
+    print(f"\nStarting random exploration phase ({episodes} episodes)...")
+    for ep in range(episodes):
+        obs = env.reset()
+        done = False
+        while not done:
+            action = env.action_space.sample()
+            obs, reward, done, info = env.step(action)
+    print("Random exploration completed.")
+
+def test_model(env, model_path, n_episodes=5):
+    """Test trained model"""
+    model_file = model_path + ".zip"
+    if not os.path.exists(model_file):
+        print(f"ERROR: Model not found at {model_file}")
+        return
+    
+    print(f"Loading model for testing: {model_file}")
+    model = PPO.load(model_path, env=env)
+    
+    print(f"Testing model for {n_episodes} episodes...")
+    obs = env.reset()
+    episode_count = 0
+    total_reward = 0
+    episode_reward = 0
+    
+    for step in range(2000):  # Max steps
+        action, _states = model.predict(obs, deterministic=True)
+        obs, reward, done, info = env.step(action)
+        episode_reward += reward
         
+        try:
+            env.render()
+        except Exception as e:
+            print(f"Render error: {e}")
+        
+        if done:
+            episode_count += 1
+            total_reward += episode_reward
+            print(f"Episode {episode_count} completed with reward: {episode_reward:.4f}")
+            episode_reward = 0
+            obs = env.reset()
+            
+            if episode_count >= n_episodes:
+                break
+    
+    avg_reward = total_reward / episode_count if episode_count > 0 else 0
+    print(f"Testing completed. Average reward: {avg_reward:.4f}")
 
-    # CSV header
+def train_model(env, model, conf, results_file, model_path, best_model_path):
+    """Training loop"""
+    # Initialize CSV
     if not os.path.exists(results_file):
         with open(results_file, mode='w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(["Step", "AvgReward", "StdDevReward"])
 
-    # Inizializza o carica il modello
-    if os.path.exists(model_path + ".zip"):
-        print("Carico modello esistente...")
-        model = PPO.load(model_path, env=env)
-    else:
-        print("Creo nuovo modello PPO...")
-        model = PPO(
-            "MlpPolicy",
-            env,
-            n_steps=conf["N_STEPS"],      # RIDOTTO per HierFL reale
-            batch_size=conf["BATCH_SIZE"],  
-            n_epochs=5,
-            verbose=1,
-            ent_coef=0.001 #esplorazione "forzata" per evitare che il modello si blocchi su una policy sub-ottimale"
-        )
-
-    # Variabili per early stopping
+    # Training variables
     best_avg_reward = -np.inf
     no_improvement_episodes = 0
-
     
-    print("\nFase di esplorazione iniziale (random policy)...")
-    random_episodes = conf["random_episodes"]
+    print(f"\nStarting training with {conf['TOTAL_EPISODES']} total episodes")
+    print(f"Simulation: {env.simulate}")
+    print(f"PPO parameters: n_steps={conf['N_STEPS']}, batch_size={conf['BATCH_SIZE']}")
 
-    for ep in range(random_episodes):
-        obs = env.reset()
-        done = False
-        while not done:
-            action = env.action_space.sample()  # Azione completamente casuale
-            obs, reward, done, info = env.step(action)
-    
-    print(f"Iniziando training con {conf['TOTAL_EPISODES']} episodi totali")
-    print(f"Simulazione: {args.simulate}")
-    print(f"Parametri PPO: n_steps={conf['N_STEPS']}, batch_size={conf['BATCH_SIZE']}")
-
-    # Training loop basato su episodi
+    # Training loop
     for episode in range(0, conf["TOTAL_EPISODES"], conf["EPISODES_PER_STEP"]):
-        print(f"\n=== Training episodi {episode} - {episode + conf['EPISODES_PER_STEP']} ===")
+        print(f"\n=== Training episodes {episode} - {episode + conf['EPISODES_PER_STEP']} ===")
 
-        # Calcola timesteps necessari per completare gli episodi
-        # Ogni episodio ha 3*2 step 
         timesteps_needed = conf["EPISODES_PER_STEP"] * env.max_round 
-        
-        print(f"Eseguendo {timesteps_needed} timesteps per {conf['EPISODES_PER_STEP']} episodi...")
+        print(f"Executing {timesteps_needed} timesteps for {conf['EPISODES_PER_STEP']} episodes...")
         
         try:
             # Training
             model.learn(total_timesteps=timesteps_needed, reset_num_timesteps=False)
             
-            # Salva modello corrente
+            # Save current model
             model.save(model_path)
-            print(f"Modello salvato: {model_path}")
+            print(f"Model saved: {model_path}")
 
-            # Valutazione
-            print("Iniziando valutazione...")
-            n_eval_episodes =1  # Meno episodi per HierFL reale
+            # Evaluation
+            print("Starting evaluation...")
             avg_reward, std_reward = evaluate_policy(
                 model, env, 
                 n_eval_episodes=5, 
@@ -160,9 +156,9 @@ if __name__ == "__main__":
             )
             
             current_episode = episode + conf["EPISODES_PER_STEP"]
-            print(f"[Valutazione] Episodio {current_episode}: avg_reward = {avg_reward:.4f}, std_dev = {std_reward:.4f}")
+            print(f"[Evaluation] Episode {current_episode}: avg_reward = {avg_reward:.4f}, std_dev = {std_reward:.4f}")
 
-            # Scrivi CSV
+            # Save results to CSV
             with open(results_file, mode='a', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow([current_episode, avg_reward, std_reward])
@@ -172,20 +168,106 @@ if __name__ == "__main__":
                 best_avg_reward = avg_reward
                 no_improvement_episodes = 0
                 model.save(best_model_path)
-                print(f"Nuovo best model salvato in: {best_model_path} [avg_reward = {avg_reward:.4f}]")
+                print(f"New best model saved: {best_model_path} [avg_reward = {avg_reward:.4f}]")
             else:
                 no_improvement_episodes += 1
-                print(f"Nessun miglioramento ({no_improvement_episodes}/{conf['PATIENCE']})")
+                print(f"No improvement ({no_improvement_episodes}/{conf['PATIENCE']})")
 
             if no_improvement_episodes >= conf["PATIENCE"]:
-                print(f"\nEarly stopping attivato dopo {current_episode} episodi. Training interrotto.")
+                print(f"\nEarly stopping activated after {current_episode} episodes. Training stopped.")
                 break
                 
         except Exception as e:
-            print(f"Errore durante training episodio {episode}: {e}")
-            print("Continuando con il prossimo batch...")
+            print(f"Error during training episode {episode}: {e}")
+            print("Continuing with next batch...")
             continue
 
-    print("\nTraining completato.")
-    print(f"Miglior reward: {best_avg_reward:.4f} | Modello salvato in {best_model_path}")
-    save_conf(filename=os.path.join(log_path,"conf.txt"),conf=conf)
+    print(f"\nTraining completed. Best reward: {best_avg_reward:.4f}")
+    return best_avg_reward
+
+def main():
+    # Environment options (can be extended)
+    env_list = ["HierFL-v0", "HierFL-v1", "HierFL-v2"]
+    
+    parser = argparse.ArgumentParser(description="PPO Training and evaluation on OptHierFLEnv")
+    parser.add_argument("--test", action="store_true", help="Test trained model")
+    parser.add_argument("--evaluate", action="store_true", help="Evaluate model using evaluate_model function")
+    parser.add_argument("--retrain", action="store_true", help="Load existing model and retrain")
+    parser.add_argument("--env_name", type=str, default="HierFL-v0", 
+                       help="Name of OptHierFLEnv environment", choices=env_list)
+    parser.add_argument("--output_dir", type=str, default="output", help="Path to output directory")
+    parser.add_argument("--experiment_id", type=int, default=0, help="Experiment ID")
+    parser.add_argument("--simulate", action="store_true", default=False, 
+                       help="Use fast simulation instead of real HierFL run")
+    parser.add_argument("--model", type=str, default="ppo_HierFL", help="Model name/path")
+    parser.add_argument("--port", type=int, default=9091, help="Port for communication")
+
+    args = parser.parse_args()
+
+    # Configuration dictionary
+    conf = {
+        "TOTAL_EPISODES": 300,
+        "EPISODES_PER_STEP": 15,
+        "N_STEPS": 128,
+        "BATCH_SIZE": 32,
+        "PATIENCE": 10,
+        "history_len": 3,
+        "max_rounds": 3,
+        "global_rounds": 3,
+        "epochs": 5,
+        "random_episodes": 5,
+        "ent_coef": 0.001,
+        "learning_rate": 3e-4,
+        
+    }
+    
+
+    # Set seeds once
+    np.random.seed(42)
+    torch.manual_seed(42)
+    random.seed(42)
+
+    # Create environment
+    env = create_env(args.env_name, conf, args.simulate)
+    
+    # Setup directories
+    log_path, model_path, best_model_path, results_file = setup_directories(args.experiment_id)
+
+    try:
+        if args.evaluate:
+            # Evaluation mode using evaluate_model function
+            model_zip_path = best_model_path + ".zip"
+            if os.path.exists(model_zip_path):
+                evaluate_model(env=env, weights_path=best_model_path, output_dir=log_path)
+            else:
+                print(f"ERROR: Model not found at {model_zip_path}")
+        
+        elif args.test:
+            # Test mode - run trained model
+            test_model(env, best_model_path if os.path.exists(best_model_path + ".zip") else model_path)
+        
+        else:
+            # Training mode
+            model = create_or_load_model(model_path, env, conf, args.retrain)
+            
+            # Random exploration phase
+            if not args.retrain:
+                random_exploration(env, conf["random_episodes"])
+            
+            # Training
+            best_reward = train_model(env, model, conf, results_file, model_path, best_model_path)
+            
+            # Save configuration
+            save_conf(filename=os.path.join(log_path, "conf.txt"), conf=conf)
+            
+            print(f"Training completed. Best model saved at: {best_model_path}")
+            print(f"Best average reward: {best_reward:.4f}")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        env.close()
+        print("Environment closed.")
+
+if __name__ == "__main__":
+    main()
