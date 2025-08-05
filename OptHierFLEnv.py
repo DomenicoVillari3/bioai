@@ -67,7 +67,7 @@ def estimate_energy_max(rounds):
 
 class OptHierFLEnv(Env):
     
-    def __init__(self, env_name: str,max_round: int = 1,global_rounds: int = 10,history_len: int = 3,simulate: bool= False):
+    def __init__(self, env_name: str,max_round: int = 1,global_rounds: int = 10,history_len: int = 3,simulate: bool= False,step_filename: str ="step.csv"):
         '''Inizializzazione dell'ambiente di ottimizzazione per HierFL.
         
         -Args:
@@ -97,6 +97,7 @@ class OptHierFLEnv(Env):
         self.n_global_rounds = global_rounds
         self.history_len = history_len
         self.simulate=simulate
+        self.step_filename=step_filename
     
         
         # Action space: k1 in [5, 25], k2 in [2, 10]
@@ -270,7 +271,7 @@ class OptHierFLEnv(Env):
         # Scrivi i risultati in un file CSV
          # Inizio del timer per la scrittura del sommario
         init_time_summary = time.time() 
-        self.write_summary(k1,k2,reward, self.current_round, results)
+        self.write_summary(k1,k2,reward, self.current_round, results,filename=self.step_filename)
          # Fine del timer per la scrittura del sommario
         final_time_summary = time.time() 
         # Calcola il tempo impiegato per scrivere il sommario
@@ -426,8 +427,8 @@ class OptHierFLEnv(Env):
         # PESI — tuning finale
         w_acc = 0.4      # peso principale per accuracy
         w_time = 0.15     # penalità tempo
-        w_energy = 0.45   # penalità energia
-        w_delta = 0.5    # incentivo al miglioramento
+        w_energy = 0.225   # penalità energia
+        w_delta = 0.225    # incentivo al miglioramento
 
         # Reward base
         reward = (
@@ -446,10 +447,10 @@ class OptHierFLEnv(Env):
         #    reward -= 0.5
 
         #Bonus per accuratezza elevata e stabile
-        if acc > 0.85 :
-            reward += 0.5
-        if acc > 0.95:
-            reward += 0.5
+        #if acc > 0.85 :
+        #    reward += 0.5
+        #if acc > 0.95:
+        #    reward += 0.5
 
         # Clipping per stabilità
         #reward = np.clip(reward, -2.0, 2.0)
@@ -458,7 +459,7 @@ class OptHierFLEnv(Env):
 
 
 
-    def write_summary(self,k1,k2, score, step,state,filename="reuslts_trained.csv"):
+    def write_summary(self,k1,k2, score, step,state,filename="results_trained.csv"):
         '''Scrive i risultati in un file CSV.
 
         Args:

@@ -7,6 +7,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 import sys
 import argparse
 import random
+import csv
 
 from OptHierFLEnv import OptHierFLEnv 
 from evaluate_model import evaluate_model
@@ -35,8 +36,9 @@ def setup_directories(experiment_id):
     model_path = os.path.join(log_path, "ppo_HierFL")
     best_model_path = os.path.join(log_path, "ppo_HierFL_best")
     results_file = os.path.join(log_path, "training_results.csv")
+    test_file=os.path.join(log_path,"res_test.csv")
     
-    return log_path, model_path, best_model_path, results_file
+    return log_path, model_path, best_model_path, results_file,test_file
 
 def create_or_load_model(model_path, env, conf, retrain=False):
     """Create new model or load existing one"""
@@ -92,15 +94,15 @@ def test_model(env, model_path, n_episodes=5):
     total_reward = 0
     episode_reward = 0
     
-    for step in range(2000):  # Max steps
+    for step in range(500):  # Number of Max steps
         action, _states = model.predict(obs, deterministic=True)
         obs, reward, done, info = env.step(action)
         episode_reward += reward
         
-        try:
+        '''try:
             env.render()
         except Exception as e:
-            print(f"Render error: {e}")
+            print(f"Render error: {e}")'''
         
         if done:
             episode_count += 1
@@ -114,6 +116,8 @@ def test_model(env, model_path, n_episodes=5):
     
     avg_reward = total_reward / episode_count if episode_count > 0 else 0
     print(f"Testing completed. Average reward: {avg_reward:.4f}")
+    
+    return avg_reward,total_reward,episode_count
 
 def train_model(env, model, conf, results_file, model_path, best_model_path):
     """Training loop"""
@@ -200,7 +204,7 @@ def main():
     parser.add_argument("--simulate", action="store_true", default=False, 
                        help="Use fast simulation instead of real HierFL run")
     parser.add_argument("--model", type=str, default="ppo_HierFL", help="Model name/path")
-    parser.add_argument("--port", type=int, default=9091, help="Port for communication")
+
 
     args = parser.parse_args()
 
@@ -231,7 +235,7 @@ def main():
     env = create_env(args.env_name, conf, args.simulate)
     
     # Setup directories
-    log_path, model_path, best_model_path, results_file = setup_directories(args.experiment_id)
+    log_path, model_path, best_model_path, results_file,test_file = setup_directories(args.experiment_id)
 
     try:
         if args.evaluate:
@@ -244,7 +248,13 @@ def main():
         
         elif args.test:
             # Test mode - run trained model
-            test_model(env, best_model_path if os.path.exists(best_model_path + ".zip") else model_path)
+            res=test_model(env, best_model_path if os.path.exists(best_model_path + ".zip") else model_path)
+            with open(test_file,"w") as f: 
+                csv_writer=csv.writer(f)
+                csv_writer.writerow(["AvgReward","TotalReward","EpisodeCount"])
+                csv_writer.writerow(list(res))
+                f.close()
+                
         
         else:
             # Training mode

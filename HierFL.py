@@ -88,6 +88,7 @@ def HierFL(args, trainloaders, valloaders, testloader):
         4:[5, 5, 6, 6, 8]       # 5 CLUSTERS
     }
 
+    #only 1 conf 
     train_args_conf = [
         {
             'LOCAL_ITERATIONS': args["LOCAL_ITERATIONS"],
@@ -122,6 +123,15 @@ def HierFL(args, trainloaders, valloaders, testloader):
     clients = []
     for id in range(args['NUM_CLIENTS']):
         clients.append(DroneManager(id))
+    
+    #Store final res for alg 
+    final_results={
+        'accuracy':0.0,
+        'loss':float('inf'),
+        'training_time':0.0,
+        'total_energy':0.0,
+        'communications':0
+    }
 
 
     
@@ -301,6 +311,13 @@ def HierFL(args, trainloaders, valloaders, testloader):
                 "Total Energy": CompEnergyConsumed + CommEnergyConsumed,
                 "Communications": numCommunications
             }
+        
+            #update results for Reinforcement
+            final_results['accuracy']=global_accuracy
+            final_results['loss']=global_loss
+            final_results['training_time']=trainTime
+            final_results['total_energy']=CommEnergyConsumed
+            final_results['communications']=numCommunications
 
         with open(train_args['file_path'], "a") as file:
             file.write(f"\n\nSUMMARY EXPERIMENTS-\n")
@@ -321,8 +338,8 @@ def HierFL(args, trainloaders, valloaders, testloader):
             for drone in clients:
                 file.write(f"\nDrone {drone.droneId} -\t Battery Level: {drone.actual_batteryLevel_percentage}% -\t Communications with base stations: {drone.num_communications} ")
 
-    #------------------------return final results ------------------------------------------------
-    cumulative={"accuracy": 0.0, "loss": 0.0, "training_time": 0.0, 
+    #------------------------retulativern final results ------------------------------------------------
+    '''cumulative={"accuracy": 0.0, "loss": 0.0, "training_time": 0.0, 
          "computation_energy": 0.0, "communication_energy": 0.0, 
          "total_energy": 0.0, "communications": 0}
     
@@ -334,9 +351,9 @@ def HierFL(args, trainloaders, valloaders, testloader):
         cumulative['computation_energy']+=cumulative_statistics[round]['Computation Energy']
         cumulative['communication_energy']+=cumulative_statistics[round]['Communication Energy']
         cumulative['total_energy']+=cumulative_statistics[round]['Total Energy']
-        cumulative['communications']+=cumulative_statistics[round]['Communications']   
+        cumulative['communications']+=cumulative_statistics[round]['Communications'] '''  
 
     import gc
     gc.collect()
 
-    return cumulative
+    return final_results
