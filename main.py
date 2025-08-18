@@ -210,7 +210,7 @@ def main():
 
     # Configuration dictionary
     conf = {
-        "TOTAL_EPISODES": 300,
+        "TOTAL_EPISODES": 135,
         "EPISODES_PER_STEP": 15,
         "N_STEPS": 128,
         "BATCH_SIZE": 32,
