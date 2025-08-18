@@ -130,7 +130,10 @@ def HierFL(args, trainloaders, valloaders, testloader):
         'loss':float('inf'),
         'training_time':0.0,
         'total_energy':0.0,
+        'computation_energy':0.0,
+        'communication_energy':0.0,
         'communications':0
+
     }
 
 
@@ -316,7 +319,9 @@ def HierFL(args, trainloaders, valloaders, testloader):
             final_results['accuracy']=global_accuracy
             final_results['loss']=global_loss
             final_results['training_time']=trainTime
-            final_results['total_energy']=CommEnergyConsumed
+            final_results['computation_energy']=CompEnergyConsumed
+            final_results['communication_energy']=CommEnergyConsumed
+            final_results['total_energy']=CommEnergyConsumed + CompEnergyConsumed
             final_results['communications']=numCommunications
 
         with open(train_args['file_path'], "a") as file:
