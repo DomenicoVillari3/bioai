@@ -38,12 +38,10 @@ def evaluate_agent(agent, env, n_eval_episodes=50, agent_name="PPO"):
 def write_results_to_csv(results_list, filename="agent_results.csv"):
     header = ["agent", "avg_reward", "std_reward", "avg_accuracy", "avg_time", "avg_energy"]
     file_exists = False
+    
+    if os.path.exists(filename):
+        file_exists = True
 
-    try:
-        with open(filename, "r"):
-            file_exists = True
-    except FileNotFoundError:
-        pass
 
     with open(filename, "a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=header)

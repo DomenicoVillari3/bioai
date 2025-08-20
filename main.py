@@ -37,8 +37,9 @@ def setup_directories(experiment_id):
     best_model_path = os.path.join(log_path, "ppo_HierFL_best")
     results_file = os.path.join(log_path, "training_results.csv")
     test_file=os.path.join(log_path,"res_test.csv")
+    test_episodes_file = os.path.join(log_path, "test_episodes.csv")
     
-    return log_path, model_path, best_model_path, results_file,test_file
+    return log_path, model_path, best_model_path, results_file,test_file,test_episodes_file
 
 def create_or_load_model(model_path, env, conf, retrain=False):
     """Create new model or load existing one"""
@@ -78,7 +79,7 @@ def random_exploration(env, episodes):
             obs, reward, done, info = env.step(action)
     print("Random exploration completed.")
 
-def test_model(env, model_path, n_episodes=5):
+def test_model(env, model_path, n_episodes=5,test_episode_file="test_episodes.csv"):
     """Test trained model"""
     model_file = model_path + ".zip"
     if not os.path.exists(model_file):
@@ -93,6 +94,7 @@ def test_model(env, model_path, n_episodes=5):
     episode_count = 0
     total_reward = 0
     episode_reward = 0
+    rewards=[]
     
     for step in range(500):  # Number of Max steps
         action, _states = model.predict(obs, deterministic=True)
@@ -105,6 +107,7 @@ def test_model(env, model_path, n_episodes=5):
             print(f"Render error: {e}")'''
         
         if done:
+            rewards.append(episode_reward)
             episode_count += 1
             total_reward += episode_reward
             print(f"Episode {episode_count} completed with reward: {episode_reward:.4f}")
@@ -116,6 +119,20 @@ def test_model(env, model_path, n_episodes=5):
     
     avg_reward = total_reward / episode_count if episode_count > 0 else 0
     print(f"Testing completed. Average reward: {avg_reward:.4f}")
+
+    # Save results to CSV
+    with open(test_episode_file, mode='w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(["Episode", "Reward"])
+        for i, reward in enumerate(rewards, 1):
+            writer.writerow([i, reward])
+        
+        # Add summary row
+        writer.writerow([])
+        writer.writerow(["Summary", ""])
+        writer.writerow(["Total Episodes", episode_count])
+        writer.writerow(["Total Reward", total_reward])
+        writer.writerow(["Average Reward", avg_reward])
     
     return avg_reward,total_reward,episode_count
 
@@ -208,6 +225,9 @@ def main():
 
     args = parser.parse_args()
 
+    '''N_STEPS >= EPISODES_PER_STEP * max_rounds
+        BATCH_SIZE <= N_STEPS
+        N_STEPS deve essere divisibile per il numero di processi paralleli'''
     # Configuration dictionary
     conf = {
         "TOTAL_EPISODES": 165,
@@ -235,7 +255,7 @@ def main():
     env = create_env(args.env_name, conf, args.simulate)
     
     # Setup directories
-    log_path, model_path, best_model_path, results_file,test_file = setup_directories(args.experiment_id)
+    log_path, model_path, best_model_path, results_file,test_file,test_ep_file = setup_directories(args.experiment_id)
 
     try:
         if args.evaluate:
@@ -248,7 +268,8 @@ def main():
         
         elif args.test:
             # Test mode - run trained model
-            res=test_model(env, best_model_path if os.path.exists(best_model_path + ".zip") else model_path)
+            res=test_model(env, best_model_path if os.path.exists(best_model_path + ".zip") else model_path,n_episodes=10,
+                           test_episode_file=test_ep_file)
             with open(test_file,"w") as f: 
                 csv_writer=csv.writer(f)
                 csv_writer.writerow(["AvgReward","TotalReward","EpisodeCount"])
