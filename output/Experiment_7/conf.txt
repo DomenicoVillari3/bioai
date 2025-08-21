@@ -1,0 +1,15 @@
+conf = {
+        "TOTAL_EPISODES": 165,
+        "EPISODES_PER_STEP": 15,
+        "N_STEPS": 128,
+        "BATCH_SIZE": 32,
+        "PATIENCE": 10,
+        "history_len": 3,
+        "max_rounds": 3,
+        "global_rounds": 3,
+        "epochs": 5,
+        "random_episodes": 5,
+        "ent_coef": 0.001,
+        "learning_rate": 3e-4,
+        
+    }
