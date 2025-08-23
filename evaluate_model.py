@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 
-def evaluate_agent(agent, env, n_eval_episodes=50, agent_name="PPO"):
+def evaluate_agent(agent, env, n_eval_episodes=25, agent_name="PPO"):
     rewards = []
     accuracies = []
     times = []
