@@ -229,20 +229,20 @@ def main():
         BATCH_SIZE <= N_STEPS
         N_STEPS deve essere divisibile per il numero di processi paralleli'''
     # Configuration dictionary
+    
     conf = {
-        "TOTAL_EPISODES": 165,
-        "EPISODES_PER_STEP": 15,
-        "N_STEPS": 128,
-        "BATCH_SIZE": 32,
-        "PATIENCE": 10,
-        "history_len": 3,
-        "max_rounds": 3,
-        "global_rounds": 3,
-        "epochs": 5,
-        "random_episodes": 5,
-        "ent_coef": 0.001,
-        "learning_rate": 3e-4,
-        
+    "TOTAL_EPISODES": 165,           # Aumentato perché senza storia serve più training
+    "EPISODES_PER_STEP": 20,         # Aumentato per batch più grandi
+    "N_STEPS": 128,                  # Mantieni uguale
+    "BATCH_SIZE": 32,                # Mantieni uguale
+    "PATIENCE": 15,                  # Più pazienza senza feedback storico
+    "history_len": 1,                # ✅ Nessuna storia
+    "max_rounds": 3,                 # Mantieni uguale
+    "global_rounds": 3,              # Mantieni uguale  
+    "epochs": 5,                     # Aumentato per compensare mancanza storia
+    "random_episodes": 8,            # Più esplorazione iniziale
+    "ent_coef": 0.003,              # Aumentato per più esplorazione
+    "learning_rate": 3e-4,           # Mantieni uguale
     }
     
 
